@@ -19,6 +19,8 @@ body {
   color: black;
   font-family: "Pretendard", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
+  /* iOS 입력 포커스 확대 방지: 시스템 텍스트 자동 확대 비활성화 */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* 모바일에서 스크롤 방지 */
@@ -48,6 +50,35 @@ body {
 @utility glass-button {
   background-color: rgb(126 34 206); /* purple-700 */
   color: white;
+}
+
+/* --- Mobile input zoom prevention & picker scroll control --- */
+/* iOS Safari에서 폼 컨트롤 포커스 시 확대되는 문제는 폰트 크기가 16px 미만일 때 주로 발생 */
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+}
+
+/* 전화번호 등 숫자 입력 시에도 확대 방지 */
+input[type="tel"],
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="number"],
+input[type="password"] {
+  font-size: 16px;
+}
+
+/* 모바일 휠/피커 컨테이너에서 바운스/체이닝 스크롤 방지 */
+@utility no-overscroll {
+  overscroll-behavior: contain;
+}
+
+/* 스크롤 스냅으로 휠 항목 스크롤 감도 보조 (피커 내부에 적용 가능) */
+@utility wheel-snap-y {
+  scroll-snap-type: y mandatory;
 }
 
 /* Animated floating gradient orbs */

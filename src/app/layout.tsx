@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "대학교 코딩 동아리 스터디 관리 시스템",
 };
 
+export const viewport = "width=device-width, initial-scale=1";
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -13,6 +13,7 @@ export default function SignupPage() {
     month: "01",
     day: "01",
   });
+  const pickerBoxRef = useRef<HTMLDivElement | null>(null);
   type ActionState = {
     success?: boolean;
     message?: string;
@@ -53,6 +54,20 @@ export default function SignupPage() {
 
   function handleBirthChange(value: { [name: string]: string }) {
     setBirth(value as { year: string; month: string; day: string });
+  }
+
+  function lockBodyScroll() {
+    try {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overscrollBehavior = "contain";
+    } catch {}
+  }
+
+  function unlockBodyScroll() {
+    try {
+      document.body.style.overflow = "";
+      document.documentElement.style.overscrollBehavior = "auto";
+    } catch {}
   }
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 3));
@@ -310,10 +325,14 @@ export default function SignupPage() {
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-neutral-700">생년월일</label>
                   <div
-                    className="w-full rounded-xl px-[11px] py-0.5 border border-black/10 bg-white text-neutral-900 overflow-hidden"
+                    ref={pickerBoxRef}
+                    onTouchStart={lockBodyScroll}
+                    onTouchEnd={unlockBodyScroll}
+                    onTouchCancel={unlockBodyScroll}
+                    className="w-full rounded-xl px-[11px] py-0.5 border border-black/10 bg-white text-neutral-900 overflow-hidden no-overscroll"
                     aria-invalid={Boolean(clientErrors.birthdate || state?.errors?.birthdate)}
                   >
-                    <Picker value={birth} onChange={handleBirthChange} wheelMode="normal" height={44} itemHeight={44}>
+                    <Picker value={birth} onChange={handleBirthChange} wheelMode="normal" height={44.5} itemHeight={44}>
                       <Picker.Column name="year">
                         {years.map((y) => (
                           <Picker.Item key={y} value={y}>
