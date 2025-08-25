@@ -591,7 +591,7 @@ export default function SignupPage() {
             <div className="relative mt-5">
               <Link
                 href="/"
-                className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium bg-black/5 hover:bg-black/10 transition-colors"
+                className="inline-flex items-center gap-0.5 rounded-lg pl-3.5 pr-3 py-2 text-[13px] font-medium bg-black/5 hover:bg-black/10 transition-colors"
               >
                 홈으로 돌아가기
                 <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" aria-hidden>
