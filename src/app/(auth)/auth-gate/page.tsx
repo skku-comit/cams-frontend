@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 
-interface AuthGatePageProps {
-  searchParams: {
-    from?: string;
-  };
-}
-
-export default function AuthGatePage({ searchParams }: AuthGatePageProps) {
-  const fromParam = typeof searchParams?.from === "string" && searchParams.from ? searchParams.from : "/";
+export default async function AuthGatePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const fromValue = Array.isArray(params.from) ? params.from[0] : params.from;
+  const fromParam = typeof fromValue === "string" && fromValue ? fromValue : "/";
   redirect(`/login?from=${encodeURIComponent(fromParam)}`);
 }
