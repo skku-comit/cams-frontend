@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useActionState } from "react";
 import { submitInfo } from "@/actions/signup";
 import Picker from "react-mobile-picker";
@@ -20,6 +21,11 @@ export default function SignupPage() {
   const initialState: ActionState = { success: undefined, message: "", errors: {} };
   type SignupAction = (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   const [state, action, isPending] = useActionState<ActionState, FormData>(submitInfo as SignupAction, initialState);
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const setFormTick = useState(0)[1];
+  const [copied, setCopied] = useState(false);
+  const accountLabel = "토스뱅크 1002-0702-1096 (김*연)";
 
   const currentYear = new Date().getFullYear();
   const years = useMemo(() => Array.from({ length: 100 }, (_, i) => String(currentYear - i)), [currentYear]);
@@ -56,59 +62,257 @@ export default function SignupPage() {
 
   console.log(isPending);
 
-  const stepHeadingMap: Record<number, string> = {
-    1: "기본적인 인적사항을 입력해 주세요",
-    2: "학교 재적 관련 정보를 입력해 주세요",
-    3: "미래 부원에 대해 더 자세히 알고 싶어요",
+  const getFormSnapshot = useCallback(() => {
+    const formEl = formRef.current;
+    const fd = formEl ? new FormData(formEl) : new FormData();
+    const get = (key: string) => String(fd.get(key) ?? "").trim();
+    return {
+      name: get("name"),
+      gender: get("gender"),
+      birthdate: `${birth.year}-${birth.month}-${birth.day}`,
+      phone: get("phone"),
+      major: get("major"),
+      studentId: get("studentId"),
+      status: get("status"),
+      campus: get("campus"),
+      reason: get("reason"),
+      experience: get("experience"),
+    };
+  }, [birth]);
+
+  function validateStep1(values: ReturnType<typeof getFormSnapshot>) {
+    const errors: Record<string, string> = {};
+    const name = values.name;
+    if (!name) {
+      errors.name = "이름을 입력해 주세요.";
+    } else {
+      const nameTrim = name.replace(/\s+/g, " ");
+      if (nameTrim.length < 2) errors.name = "이름은 2자 이상이어야 합니다.";
+      else if (nameTrim.length > 30) errors.name = "이름이 너무 깁니다 (최대 30자)";
+      else if (!/^[A-Za-z가-힣\s'-]+$/.test(nameTrim)) errors.name = "이름은 한글/영문만 입력하세요.";
+    }
+
+    if (!values.gender) {
+      errors.gender = "성별을 선택해주세요.";
+    }
+
+    const year = parseInt(birth.year, 10);
+    if (Number.isNaN(year) || year > 2007) {
+      errors.birthdate = "2007년생 이하만 가입 가능합니다.";
+    }
+
+    const phoneDigits = values.phone;
+    if (!/^010\d{8}$/.test(phoneDigits)) {
+      errors.phone = "010으로 시작하는 11자리 번호를 입력해주세요.";
+    }
+    return errors;
+  }
+
+  function validateStep2(values: ReturnType<typeof getFormSnapshot>) {
+    const errors: Record<string, string> = {};
+    if (!values.major) errors.major = "학과를 입력해주세요.";
+    const sid = values.studentId;
+    if (!/^[12]\d{9}$/.test(sid)) errors.studentId = "학번 10자리를 입력해주세요.";
+    if (!values.status) errors.status = "학적 상태를 선택해주세요.";
+    if (!values.campus) errors.campus = "캠퍼스를 선택해주세요.";
+    return errors;
+  }
+
+  function validateStep3(values: ReturnType<typeof getFormSnapshot>) {
+    const errors: Record<string, string> = {};
+    if (!values.reason || values.reason.trim().length < 100) errors.reason = "가입 이유는 100자 이상 작성해주세요.";
+    if (!values.experience || values.experience.trim().length < 100)
+      errors.experience = "개발 경험은 100자 이상 작성해주세요.";
+    return errors;
+  }
+
+  function mergeErrors(...maps: Record<string, string>[]) {
+    return maps.reduce((acc, m) => Object.assign(acc, m), {} as Record<string, string>);
+  }
+
+  function validateAll() {
+    const snapshot = getFormSnapshot();
+    return mergeErrors(validateStep1(snapshot), validateStep2(snapshot), validateStep3(snapshot));
+  }
+
+  function scrollToFirstError() {
+    setTimeout(() => {
+      const root = formRef.current;
+      if (!root) return;
+      const first = root.querySelector('[aria-invalid="true"]') as HTMLElement | null;
+      if (first && typeof first.scrollIntoView === "function") {
+        first.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof first.focus === "function") first.focus();
+      }
+    }, 0);
+  }
+
+  function handleNextStep() {
+    const snapshot = getFormSnapshot();
+    const errors = step === 1 ? validateStep1(snapshot) : validateStep2(snapshot);
+    if (Object.keys(errors).length > 0) {
+      setClientErrors(errors);
+      scrollToFirstError();
+      return;
+    }
+    setClientErrors({});
+    nextStep();
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const errors = validateAll();
+    if (Object.keys(errors).length > 0) {
+      e.preventDefault();
+      setClientErrors(errors);
+      const step1Keys = ["name", "gender", "birthdate", "phone"];
+      const step2Keys = ["major", "studentId", "status", "campus"];
+      const keys = Object.keys(errors);
+      if (keys.some((k) => step1Keys.includes(k))) setStep(1);
+      else if (keys.some((k) => step2Keys.includes(k))) setStep(2);
+      else setStep(3);
+      scrollToFirstError();
+      return;
+    }
+    setClientErrors({});
+  }
+
+  function handleFormChange() {
+    setFormTick((v) => v + 1);
+  }
+
+  const snapshotForFilled = getFormSnapshot();
+  const step1Filled = Boolean(snapshotForFilled.name && snapshotForFilled.gender && snapshotForFilled.phone);
+  const step2Filled = Boolean(
+    snapshotForFilled.major && snapshotForFilled.studentId && snapshotForFilled.status && snapshotForFilled.campus
+  );
+  const step3Filled = Boolean(snapshotForFilled.reason && snapshotForFilled.experience);
+
+  async function copyAccount() {
+    const text = accountLabel;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {}
+    }
+  }
+
+  const stepHeadingMap: Record<number, React.ReactNode> = {
+    1: (
+      <>
+        가입을 위해 기본적인
+        <br />
+        인적사항을 입력해 주세요
+      </>
+    ),
+    2: (
+      <>
+        성균관대학교 재적
+        <br />
+        관련 정보를 입력해 주세요
+      </>
+    ),
+    3: (
+      <>
+        미래 부원에 대해서
+        <br />더 자세히 알고 싶어요
+      </>
+    ),
   };
 
   return (
     <div className="flex items-center justify-center px-4 py-2">
       <div className="w-full max-w-md">
+        {!state?.success && step > 1 && (
+          <button
+            type="button"
+            onClick={prevStep}
+            className="flex items-center gap-1 text-black/60 text-[13px] leading-[18px] hover:text-black transition-colors"
+          >
+            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" aria-hidden>
+              <path
+                d="M11 15L6 10l5-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="select-none">이전으로 돌아가기</span>
+          </button>
+        )}
         {!state?.success ? (
-          <h2 className="text-[1.3rem] leading-7.5 font-bold text-left text-black mb-2.5">{stepHeadingMap[step]}</h2>
+          <h2 className="text-[1.3rem] leading-7.5 font-bold text-left text-neutral-800 mb-3 mt-4.5">
+            {stepHeadingMap[step]}
+          </h2>
         ) : (
-          <h2 className="text-[1.3rem] leading-7.5 font-bold text-center text-black mb-2.5">코밋 부원이 되신 것을 환영합니다!</h2>
+          <h2 className="text-[1.3rem] opacity-0 leading-7.5 font-bold text-center text-neutral-800 mb-2.5">
+            코밋 부원이 되신 것을 환영합니다!
+          </h2>
         )}
         {!state?.success ? (
           <>
-            <div className="w-full h-1 bg-black/20 rounded-full mb-6">
-              <div
-                className="h-1 bg-indigo-500 rounded-full transition-all"
-                style={{ width: `${((step - 1) / 2) * 100}%` }}
-              />
-            </div>
             {/* Step 1 */}
-            <form action={action} className="flex w-full">
+            <form
+              action={action}
+              ref={formRef}
+              onSubmit={handleSubmit}
+              onChange={handleFormChange}
+              onInput={handleFormChange}
+              className="w-full space-y-4 text-[15px]"
+            >
               <div className={step === 1 ? "space-y-4" : "hidden"}>
                 <div>
-                  <label className="block text-sm font-medium mb-1">이름</label>
+                  <label className="block text-[15px] text-neutral-700 font-medium mb-1">이름</label>
                   <input
                     name="name"
                     type="text"
                     placeholder="홍길동"
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3"
-                    aria-invalid={Boolean(state?.errors?.name)}
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.name || state?.errors?.name)}
                   />
-                  {state?.errors?.name && <p className="text-red-400 text-xs mt-1">{state.errors.name}</p>}
+                  {(clientErrors.name || state?.errors?.name) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.name || state?.errors?.name}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">성별</label>
-                  <div className="flex gap-4">
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="gender" value="male" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">남성</span>
+                  <label className="block text-[15px] text-neutral-700 font-medium mb-1">성별</label>
+                  <div
+                    className="flex flex-row gap-0"
+                    aria-invalid={Boolean(clientErrors.gender || state?.errors?.gender)}
+                  >
+                    <label className="cursor-pointer">
+                      <input type="radio" name="gender" value="male" className="peer sr-only" />
+                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        <span className="">남성</span>
+                      </div>
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="gender" value="female" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">여성</span>
+                    <label className="cursor-pointer -translate-x-0.25">
+                      <input type="radio" name="gender" value="female" className="peer sr-only" />
+                      <div className="rounded-r-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        여성
+                      </div>
                     </label>
                   </div>
-                  {state?.errors?.gender && <p className="text-red-400 text-xs mt-1">{state.errors.gender}</p>}
+                  {(clientErrors.gender || state?.errors?.gender) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.gender || state?.errors?.gender}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">생년월일</label>
-                  <div className="glass-input w-full rounded-xl px-2 py-2 text-black overflow-hidden">
+                  <label className="block text-[15px] font-medium mb-1 text-neutral-700">생년월일</label>
+                  <div
+                    className="w-full rounded-xl px-[11px] py-0.5 border border-black/10 bg-white text-neutral-900 overflow-hidden"
+                    aria-invalid={Boolean(clientErrors.birthdate || state?.errors?.birthdate)}
+                  >
                     <Picker value={birth} onChange={handleBirthChange} wheelMode="normal" height={44} itemHeight={44}>
                       <Picker.Column name="year">
                         {years.map((y) => (
@@ -134,110 +338,144 @@ export default function SignupPage() {
                     </Picker>
                   </div>
                   <input type="hidden" name="birthdate" value={`${birth.year}-${birth.month}-${birth.day}`} />
-                  {state?.errors?.birthdate && <p className="text-red-400 text-xs mt-1">{state.errors.birthdate}</p>}
+                  {(clientErrors.birthdate || state?.errors?.birthdate) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.birthdate || state?.errors?.birthdate}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">전화번호</label>
+                  <label className="block text-[15px] font-medium mb-1 text-neutral-700">전화번호</label>
                   <input
                     type="tel"
                     placeholder="010-1234-5678"
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-black placeholder-black/60"
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
                     value={phone}
                     onChange={(e) => setPhone(formatPhone(e.target.value))}
-                    aria-invalid={Boolean(state?.errors?.phone)}
+                    aria-invalid={Boolean(clientErrors.phone || state?.errors?.phone)}
                   />
                   <input type="hidden" name="phone" value={phone.replace(/\D/g, "")} />
-                  {state?.errors?.phone && <p className="text-red-400 text-xs mt-1">{state.errors.phone}</p>}
+                  {(clientErrors.phone || state?.errors?.phone) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.phone || state?.errors?.phone}</p>
+                  )}
                 </div>
               </div>
 
               {/* Step 2 */}
               <div className={step === 2 ? "space-y-4" : "hidden"}>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">학과</label>
+                  <label className="block text-[15px] font-medium mb-1 text-black">학과</label>
                   <input
                     name="major"
                     type="text"
                     placeholder="컴퓨터공학"
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-black placeholder-black/60"
-                    aria-invalid={Boolean(state?.errors?.major)}
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.major || state?.errors?.major)}
                   />
-                  {state?.errors?.major && <p className="text-red-400 text-xs mt-1">{state.errors.major}</p>}
+                  {(clientErrors.major || state?.errors?.major) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.major || state?.errors?.major}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">학번</label>
+                  <label className="block text-[15px] font-medium mb-1 text-black">학번</label>
                   <input
                     name="studentId"
                     type="text"
                     inputMode="numeric"
                     placeholder="2024001234"
                     maxLength={10}
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-black placeholder-black/60"
-                    aria-invalid={Boolean(state?.errors?.studentId)}
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.studentId || state?.errors?.studentId)}
                   />
-                  {state?.errors?.studentId && <p className="text-red-400 text-xs mt-1">{state.errors.studentId}</p>}
+                  {(clientErrors.studentId || state?.errors?.studentId) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.studentId || state?.errors?.studentId}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">학적 상태</label>
-                  <div className="flex flex-wrap gap-4">
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="status" value="enrolled" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">재학</span>
+                  <label className="block text-[15px] font-medium mb-1 text-black">학적 상태</label>
+                  <div
+                    className="gap-0 flex flex-row"
+                    aria-invalid={Boolean(clientErrors.status || state?.errors?.status)}
+                  >
+                    <label className="cursor-pointer">
+                      <input type="radio" name="status" value="enrolled" className="peer sr-only" />
+                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        재학
+                      </div>
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="status" value="graduated" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">졸업</span>
+                    <label className="cursor-pointer">
+                      <input type="radio" name="status" value="graduated" className="peer sr-only" />
+                      <div className="-translate-x-0.25 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        졸업
+                      </div>
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="status" value="on_leave" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">휴학</span>
+                    <label className="cursor-pointer">
+                      <input type="radio" name="status" value="on_leave" className="peer sr-only" />
+                      <div className="rounded-r-xl -translate-x-0.5 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        휴학
+                      </div>
                     </label>
                   </div>
-                  {state?.errors?.status && <p className="text-red-400 text-xs mt-1">{state.errors.status}</p>}
+                  {(clientErrors.status || state?.errors?.status) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.status || state?.errors?.status}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">캠퍼스</label>
-                  <div className="flex flex-wrap gap-4">
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="campus" value="seoul" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">서울</span>
+                  <label className="block text-[15px] font-medium mb-1 text-black">캠퍼스</label>
+                  <div
+                    className="flex flex-row gap-0"
+                    aria-invalid={Boolean(clientErrors.campus || state?.errors?.campus)}
+                  >
+                    <label className="cursor-pointer">
+                      <input type="radio" name="campus" value="seoul" className="peer sr-only" />
+                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        서울
+                      </div>
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="campus" value="suwon" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">수원</span>
+                    <label className="cursor-pointer">
+                      <input type="radio" name="campus" value="suwon" className="peer sr-only" />
+                      <div className="-translate-x-0.25 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        수원
+                      </div>
                     </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="campus" value="cheon_an" className="h-4 w-4 accent-indigo-500" />
-                      <span className="text-black text-sm">천안</span>
+                    <label className="cursor-pointer">
+                      <input type="radio" name="campus" value="blank" className="peer sr-only" />
+                      <div className="rounded-r-xl -translate-x-0.5 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                        해당없음
+                      </div>
                     </label>
                   </div>
-                  {state?.errors?.campus && <p className="text-red-400 text-xs mt-1">{state.errors.campus}</p>}
+                  {(clientErrors.campus || state?.errors?.campus) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.campus || state?.errors?.campus}</p>
+                  )}
                 </div>
               </div>
 
               {/* Step 3 */}
               <div className={step === 3 ? "space-y-4" : "hidden"}>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">가입 이유</label>
+                  <label className="block text-[15px] font-medium mb-1 text-black">가입 이유</label>
                   <textarea
                     name="reason"
                     rows={3}
                     placeholder="가입 동기를 자유롭게 작성해주세요."
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-black placeholder-black/60"
-                    aria-invalid={Boolean(state?.errors?.reason)}
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.reason || state?.errors?.reason)}
                   />
-                  {state?.errors?.reason && <p className="text-red-400 text-xs mt-1">{state.errors.reason}</p>}
+                  {(clientErrors.reason || state?.errors?.reason) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.reason || state?.errors?.reason}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-black">개발 경험</label>
+                  <label className="block text-[15px] font-medium mb-1 text-black">개발 경험</label>
                   <textarea
                     name="experience"
                     rows={3}
-                    placeholder="개발 경험을 간략히 작성해주세요."
-                    className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-black placeholder-black/60"
-                    aria-invalid={Boolean(state?.errors?.experience)}
+                    placeholder="개발 관련 경험을 간략히 작성해주세요."
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.experience || state?.errors?.experience)}
                   />
-                  {state?.errors?.experience && <p className="text-red-400 text-xs mt-1">{state.errors.experience}</p>}
+                  {(clientErrors.experience || state?.errors?.experience) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.experience || state?.errors?.experience}</p>
+                  )}
                 </div>
               </div>
 
@@ -246,32 +484,38 @@ export default function SignupPage() {
                 <p className={`text-sm ${state?.success ? "text-green-400" : "text-red-400"}`}>{state.message}</p>
               )}
 
-              <div className="flex justify-between mt-4">
-                {step > 1 ? (
-                  <button type="button" onClick={prevStep} className="glass-button rounded-xl px-4 py-2 text-black">
-                    뒤로
-                  </button>
-                ) : (
-                  <div />
-                )}
+              <div className="mt-6 w-full">
                 {step < 3 && (
-                  <button type="button" onClick={nextStep} className="glass-button rounded-xl px-4 py-2 text-black">
-                    다음
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    disabled={(step === 1 && !step1Filled) || (step === 2 && !step2Filled)}
+                    className={`w-full rounded-xl h-10 flex items-center justify-center active:scale-[0.98] transition ${
+                      (step === 1 && !step1Filled) || (step === 2 && !step2Filled)
+                        ? "bg-neutral-400 text-gray-200"
+                        : "bg-purple-500 text-neutral-800"
+                    }`}
+                  >
+                    <span className="select-none leading-5 font-medium">다음</span>
                   </button>
                 )}
                 {step === 3 && (
                   <button
                     type="submit"
-                    disabled={isPending}
-                    className="glass-button rounded-xl px-4 py-2 text-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    disabled={isPending || !step3Filled}
+                    className={`w-full rounded-xl px-4 py-2 flex items-center justify-center gap-2 active:scale-[0.98] transition ${
+                      isPending || !step3Filled
+                        ? "bg-neutral-500 text-gray-200 cursor-not-allowed opacity-70"
+                        : "bg-purple-600 text-white"
+                    }`}
                   >
                     {isPending ? (
                       <>
                         <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                        처리중...
+                        <span className="select-none">처리중...</span>
                       </>
                     ) : (
-                      "완료"
+                      <span className="select-none">완료</span>
                     )}
                   </button>
                 )}
@@ -279,13 +523,88 @@ export default function SignupPage() {
             </form>
           </>
         ) : (
-          <div className="rounded-xl bg-black/10 border border-black/10 p-4 text-black text-sm">
-            <p className="text-base font-semibold mb-2">회원가입 신청이 완료되었습니다.</p>
-            <p className="mb-1">동아리비 입금 확인 후 최종 가입 처리됩니다.</p>
-            <p>
-              동아리비: <span className="font-semibold">15,000원</span> / 입금 계좌:{" "}
-              <span className="font-semibold">3333-29-1234-56</span>
+          <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-white to-purple-50 px-3 py-6 text-neutral-900 text-center">
+            <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-purple-200/40 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-44 h-44 rounded-full bg-purple-300/30 blur-2xl pointer-events-none" />
+
+            <div className="relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" aria-hidden>
+                <path
+                  d="M5 13l4 4L19 7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="relative text-[16px] leading-6 font-medium">코밋 부원이 되신 것을 환영합니다!</p>
+            <p className="relative mt-1 text-[13px] leading-5 text-neutral-600">
+              회비 입금 확인 후 최종 가입 처리됩니다
             </p>
+
+            <div
+              className="relative mt-4 rounded-xl border border-black/10 bg-white p-3 text-left cursor-pointer select-none hover:bg-purple-50/60 transition-colors"
+              role="button"
+              tabIndex={0}
+              onClick={copyAccount}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  copyAccount();
+                }
+              }}
+              aria-label="계좌번호 복사"
+            >
+              <div className="flex justify-between flex-col text-center">
+                <div>
+                  <p className="text-[12px] text-neutral-500">입금 계좌</p>
+                  <p className="mt-0.5 text-[14px] font-semibold tracking-tight">{accountLabel}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyAccount();
+                  }}
+                  className={`rounded-lg mx-auto w-1/2 px-3 py-1.5 mt-1 ${
+                    copied ? "bg-purple-400" : "bg-purple-600"
+                  } text-white text-[12px] font-medium active:scale-[0.98]`}
+                >
+                  {copied ? "복사 완료!" : "클릭해서 복사하기"}
+                </button>
+              </div>
+            </div>
+
+            <div className="relative mt-4 grid grid-cols-2 gap-2 text-left text-[12px]">
+              <div className="rounded-xl border border-black/10 bg-white p-3">
+                <p className="text-neutral-500">회비</p>
+                <p className="mt-0.5 text-[14px] font-semibold">15,000원</p>
+              </div>
+              <div className="rounded-xl border border-black/10 bg-white p-3">
+                <p className="text-neutral-500">문의</p>
+                <p className="mt-0.5 text-[14px] font-semibold">카카오톡 오픈톡</p>
+                <p className="mt-0.5 text-[14px] font-semibold">인스타그램 DM</p>
+              </div>
+            </div>
+
+            <div className="relative mt-5">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium bg-black/5 hover:bg-black/10 transition-colors"
+              >
+                홈으로 돌아가기
+                <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" aria-hidden>
+                  <path
+                    d="M9 6l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Link>
+            </div>
           </div>
         )}
       </div>
