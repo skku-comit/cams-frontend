@@ -9,10 +9,14 @@ export default function SignupPage() {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState<string>("");
   const [birth, setBirth] = useState<{ year: string; month: string; day: string }>({
-    year: String(new Date().getFullYear()),
-    month: "01",
-    day: "01",
+    year: String(new Date().getFullYear() - 18),
+    month: String(new Date().getMonth() + 1).padStart(2, "0"),
+    day: String(new Date().getDate()).padStart(2, "0"),
   });
+  // 바텀시트용 임시 값 및 상태
+  const [isBirthSheetOpen, setIsBirthSheetOpen] = useState(false);
+  const [birthDraft, setBirthDraft] = useState<{ year: string; month: string; day: string }>(() => ({ ...birth }));
+  const [isBirthPicked, setIsBirthPicked] = useState(false);
   const pickerBoxRef = useRef<HTMLDivElement | null>(null);
   type ActionState = {
     success?: boolean;
@@ -38,12 +42,75 @@ export default function SignupPage() {
     return Array.from({ length: last }, (_, i) => String(i + 1).padStart(2, "0"));
   }, [birth.year, birth.month]);
 
+  // 바텀시트 내부에서 사용할 draft용 일수 계산
+  const draftDays = useMemo(() => {
+    const y = parseInt(birthDraft.year, 10);
+    const m = parseInt(birthDraft.month, 10);
+    const last = new Date(y, m, 0).getDate();
+    return Array.from({ length: last }, (_, i) => String(i + 1).padStart(2, "0"));
+  }, [birthDraft.year, birthDraft.month]);
+
   useEffect(() => {
     const maxDay = days[days.length - 1];
     if (parseInt(birth.day, 10) > parseInt(maxDay, 10)) {
       setBirth((prev) => ({ ...prev, day: maxDay }));
     }
   }, [days, birth.day]);
+
+  // 바텀시트 draft도 월 바뀔 때 일수 보정
+  useEffect(() => {
+    const maxDay = draftDays[draftDays.length - 1];
+    if (parseInt(birthDraft.day, 10) > parseInt(maxDay, 10)) {
+      setBirthDraft((prev) => ({ ...prev, day: maxDay }));
+    }
+  }, [draftDays, birthDraft.day]);
+
+  // 바텀시트 오픈 시 배경 스크롤/오버스크롤 완전 차단
+  const scrollLockRef = useRef<number>(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const body = document.body as HTMLBodyElement;
+    const html = document.documentElement as HTMLElement;
+    if (isBirthSheetOpen) {
+      scrollLockRef.current = window.scrollY || window.pageYOffset || 0;
+      body.style.position = "fixed";
+      body.style.top = `-${scrollLockRef.current}px`;
+      body.style.left = "0";
+      body.style.right = "0";
+      body.style.width = "100%";
+      body.style.overflow = "hidden";
+      // iOS Safari overscroll-bounce 억제
+      body.style.setProperty("overscroll-behavior-y", "contain");
+      html.style.setProperty("overscroll-behavior-y", "contain");
+      body.style.touchAction = "none";
+    } else {
+      const y = scrollLockRef.current || 0;
+      body.style.position = "";
+      body.style.top = "";
+      body.style.left = "";
+      body.style.right = "";
+      body.style.width = "";
+      body.style.overflow = "";
+      body.style.removeProperty("overscroll-behavior-y");
+      html.style.removeProperty("overscroll-behavior-y");
+      body.style.touchAction = "";
+      if (y) window.scrollTo(0, y);
+    }
+    return () => {
+      // 언마운트 보호: 스타일 원복
+      const body2 = document.body as HTMLBodyElement;
+      const html2 = document.documentElement as HTMLElement;
+      body2.style.position = "";
+      body2.style.top = "";
+      body2.style.left = "";
+      body2.style.right = "";
+      body2.style.width = "";
+      body2.style.overflow = "";
+      body2.style.removeProperty("overscroll-behavior-y");
+      html2.style.removeProperty("overscroll-behavior-y");
+      body2.style.touchAction = "";
+    };
+  }, [isBirthSheetOpen]);
 
   function formatPhone(value: string): string {
     const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -52,9 +119,20 @@ export default function SignupPage() {
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   }
 
-  function handleBirthChange(value: { [name: string]: string }) {
-    setBirth(value as { year: string; month: string; day: string });
+  function handleBirthDraftChange(value: { [name: string]: string }) {
+    setBirthDraft(value as { year: string; month: string; day: string });
   }
+
+  const openBirthSheet = () => {
+    setBirthDraft({ ...birth });
+    setIsBirthSheetOpen(true);
+  };
+
+  const confirmBirthSheet = () => {
+    setBirth({ ...birthDraft });
+    setIsBirthPicked(true);
+    setIsBirthSheetOpen(false);
+  };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 3));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
@@ -140,7 +218,7 @@ export default function SignupPage() {
     setTimeout(() => {
       const root = formRef.current;
       if (!root) return;
-      const first = root.querySelector('[aria-invalid="true"]') as HTMLElement | null;
+      const first = root.querySelector('[aria-invalid="true"], [data-error="true"]') as HTMLElement | null;
       if (first && typeof first.scrollIntoView === "function") {
         first.scrollIntoView({ behavior: "smooth", block: "center" });
         if (typeof first.focus === "function") first.focus();
@@ -308,34 +386,35 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-neutral-700">생년월일</label>
+                  {/* 트리거: 읽기 전용 입력처럼 보이는 버튼 */}
                   <div
                     ref={pickerBoxRef}
-                    className="w-full rounded-xl px-[11px] py-0.5 border border-black/10 bg-white text-neutral-900 overflow-hidden no-overscroll"
-                    aria-invalid={Boolean(clientErrors.birthdate || state?.errors?.birthdate)}
+                    role="button"
+                    tabIndex={0}
+                    onClick={openBirthSheet}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openBirthSheet();
+                      }
+                    }}
+                    className="w-full rounded-xl px-[11px] h-11 border border-black/10 bg-white text-neutral-900 flex items-center justify-between cursor-pointer select-none"
+                    data-error={Boolean(clientErrors.birthdate || state?.errors?.birthdate) ? "true" : undefined}
                   >
-                    <Picker value={birth} onChange={handleBirthChange} wheelMode="normal" height={44.5} itemHeight={44}>
-                      <Picker.Column name="year">
-                        {years.map((y) => (
-                          <Picker.Item key={y} value={y}>
-                            {y}
-                          </Picker.Item>
-                        ))}
-                      </Picker.Column>
-                      <Picker.Column name="month">
-                        {months.map((m) => (
-                          <Picker.Item key={m} value={m}>
-                            {m}
-                          </Picker.Item>
-                        ))}
-                      </Picker.Column>
-                      <Picker.Column name="day">
-                        {days.map((d) => (
-                          <Picker.Item key={d} value={d}>
-                            {d}
-                          </Picker.Item>
-                        ))}
-                      </Picker.Column>
-                    </Picker>
+                    {isBirthPicked ? (
+                      <span className="text-black">{`${birth.year}-${birth.month}-${birth.day}`}</span>
+                    ) : (
+                      <span className="text-black/60">클릭하여 날짜 선택</span>
+                    )}
+                    <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4 text-black/60" aria-hidden>
+                      <path
+                        d="M7 8l3 3 3-3"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
                   <input type="hidden" name="birthdate" value={`${birth.year}-${birth.month}-${birth.day}`} />
                   {(clientErrors.birthdate || state?.errors?.birthdate) && (
@@ -509,6 +588,94 @@ export default function SignupPage() {
                 )}
               </div>
             </form>
+            {/* 바텀시트 모달 */}
+            {isBirthSheetOpen && (
+              <div className="fixed inset-0 z-50">
+                {/* 오버레이(외부 클릭 차단, 닫힘 없음) */}
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-auto" aria-hidden></div>
+                {/* 시트 */}
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  className="absolute left-0 right-0 bottom-0 rounded-t-2xl bg-white shadow-2xl border-t border-black/10"
+                >
+                  <div className="px-4.5 pt-3 pb-2 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsBirthSheetOpen(false)}
+                      className="text-[15px] text-purple-700 active:opacity-70"
+                    >
+                      취소
+                    </button>
+                    <p className="text-base font-medium text-neutral-800">생년월일 선택</p>
+                    <button
+                      type="button"
+                      onClick={confirmBirthSheet}
+                      className="text-[15px] text-purple-700 active:opacity-70"
+                    >
+                      완료
+                    </button>
+                  </div>
+                  <div className="relative h-50 px-3 pb-3">
+                    {/* 중앙 하이라이트 (itemHeight와 동일 높이) */}
+                    <div
+                      className="pointer-events-none absolute left-4.5 right-4.5 top-1/2 -translate-y-1/2 rounded-xl bg-black/[0.04] z-10"
+                      style={{ height: 36 }}
+                    />
+                    {/* 위/아래 그라데이션 마스크 */}
+                    <div className="pointer-events-none absolute left-0 right-0 top-0 h-20 bg-gradient-to-b from-white to-transparent z-20" />
+                    <div className="pointer-events-none absolute left-0 right-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent z-20" />
+                    <div className="relative rounded-xl bg-white overflow-hidden overscroll-contain">
+                      <Picker
+                        className="picker-no-guides font-medium text-[18px]"
+                        value={birthDraft}
+                        onChange={handleBirthDraftChange}
+                        wheelMode="normal"
+                        height={200}
+                        itemHeight={32}
+                      >
+                        <Picker.Column name="year">
+                          {years.map((y) => (
+                            <Picker.Item key={y} value={y}>
+                              <span
+                                className={`${
+                                  birthDraft.year === y ? "text-neutral-900" : "text-neutral-500"
+                                } inline-block translate-x-2`}
+                              >
+                                {y}
+                              </span>
+                            </Picker.Item>
+                          ))}
+                        </Picker.Column>
+                        <Picker.Column name="month">
+                          {months.map((m) => (
+                            <Picker.Item key={m} value={m}>
+                              <span className={birthDraft.month === m ? "text-neutral-900" : "text-neutral-500"}>
+                                {m}
+                              </span>
+                            </Picker.Item>
+                          ))}
+                        </Picker.Column>
+                        <Picker.Column name="day">
+                          {draftDays.map((d) => (
+                            <Picker.Item key={d} value={d}>
+                              <span
+                                className={`${
+                                  birthDraft.day === d ? "text-neutral-900" : "text-neutral-500"
+                                } inline-block -translate-x-2`}
+                              >
+                                {d}
+                              </span>
+                            </Picker.Item>
+                          ))}
+                        </Picker.Column>
+                      </Picker>
+                    </div>
+                    <div className="h-2" />
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-white to-purple-50 px-3 py-6 text-neutral-900 text-center">

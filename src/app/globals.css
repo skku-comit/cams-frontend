@@ -61,8 +61,7 @@ body {
 /* iOS Safari에서 폼 컨트롤 포커스 시 확대되는 문제는 폰트 크기가 16px 미만일 때 주로 발생 */
 input,
 select,
-textarea,
-button {
+textarea {
   font-size: 16px;
 }
 
@@ -84,6 +83,12 @@ input[type="password"] {
 /* 스크롤 스냅으로 휠 항목 스크롤 감도 보조 (피커 내부에 적용 가능) */
 @utility wheel-snap-y {
   scroll-snap-type: y mandatory;
+}
+
+/* react-mobile-picker 기본 가이드 라인 숨김 */
+.picker-no-guides > div:last-child > div {
+  /* 라이브러리가 중앙선 2개를 절대 위치로 그려주므로 투명화 */
+  background: transparent !important;
 }
 
 /* Animated floating gradient orbs */
