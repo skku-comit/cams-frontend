@@ -154,7 +154,8 @@ export default function SignupPage() {
       studentId: get("studentId"),
       status: get("status"),
       campus: get("campus"),
-      reason: get("reason"),
+      reasons: (fd.getAll("reasons") || []).map((v) => String(v)).filter(Boolean),
+      reasonEtc: get("reasonEtc"),
       experience: get("experience"),
     };
   }, [birth]);
@@ -199,9 +200,14 @@ export default function SignupPage() {
 
   function validateStep3(values: ReturnType<typeof getFormSnapshot>) {
     const errors: Record<string, string> = {};
-    if (!values.reason || values.reason.trim().length < 100) errors.reason = "가입 이유는 100자 이상 작성해주세요.";
-    if (!values.experience || values.experience.trim().length < 100)
-      errors.experience = "개발 경험은 100자 이상 작성해주세요.";
+    const reasons = Array.isArray(values.reasons) ? values.reasons : [];
+    if (!reasons.length) {
+      errors.reasons = "하나 이상 선택해주세요.";
+    }
+    if (reasons.includes("기타") && !values.reasonEtc) {
+      errors.reasonEtc = "기타 내용을 입력해주세요.";
+    }
+    if (!values.experience || values.experience.trim().length < 30) errors.experience = "30자 이상 작성해주세요.";
     return errors;
   }
 
@@ -264,7 +270,10 @@ export default function SignupPage() {
   const step2Filled = Boolean(
     snapshotForFilled.major && snapshotForFilled.studentId && snapshotForFilled.status && snapshotForFilled.campus
   );
-  const step3Filled = Boolean(snapshotForFilled.reason && snapshotForFilled.experience);
+  const step3Filled = Boolean((snapshotForFilled.reasons?.length || 0) > 0 && snapshotForFilled.experience);
+  const isReasonOtherSelected = Array.isArray(snapshotForFilled.reasons)
+    ? snapshotForFilled.reasons.includes("기타")
+    : false;
 
   async function copyAccount() {
     const text = accountLabel;
@@ -445,7 +454,7 @@ export default function SignupPage() {
                   <input
                     name="major"
                     type="text"
-                    placeholder="컴퓨터공학"
+                    placeholder="소프트웨어학과"
                     className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
                     aria-invalid={Boolean(clientErrors.major || state?.errors?.major)}
                   />
@@ -520,23 +529,44 @@ export default function SignupPage() {
               <div className={step === 3 ? "space-y-4" : "hidden"}>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-black">가입 이유</label>
-                  <textarea
-                    name="reason"
-                    rows={3}
-                    placeholder="가입 동기를 자유롭게 작성해주세요."
-                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
-                    aria-invalid={Boolean(clientErrors.reason || state?.errors?.reason)}
-                  />
-                  {(clientErrors.reason || state?.errors?.reason) && (
-                    <p className="text-red-400 text-xs mt-1">{clientErrors.reason || state?.errors?.reason}</p>
+                  <div
+                    className="grid grid-cols-2 gap-1.5"
+                    aria-invalid={Boolean(clientErrors.reasons || state?.errors?.reasons)}
+                  >
+                    {["스터디", "세미나", "프로젝트", "대회 참여", "네트워킹 & 친목", "기타"].map((label) => (
+                      <label key={label} className="cursor-pointer">
+                        <input type="checkbox" name="reasons" value={label} className="peer sr-only" />
+                        <div className="rounded-xl segmented-option text-center">
+                          <span>{label}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {(clientErrors.reasons || state?.errors?.reasons) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.reasons || state?.errors?.reasons}</p>
                   )}
                 </div>
+                {isReasonOtherSelected && (
+                  <div>
+                    <label className="block text-[15px] font-medium mb-1 text-black">기타 내용</label>
+                    <input
+                      name="reasonEtc"
+                      type="text"
+                      placeholder="예: 진로 상담, 커리어 개발 등"
+                      className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                      aria-invalid={Boolean(clientErrors.reasonEtc || state?.errors?.reasonEtc)}
+                    />
+                    {(clientErrors.reasonEtc || state?.errors?.reasonEtc) && (
+                      <p className="text-red-400 text-xs mt-1">{clientErrors.reasonEtc || state?.errors?.reasonEtc}</p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-black">개발 경험</label>
                   <textarea
                     name="experience"
                     rows={3}
-                    placeholder="개발 관련 경험을 간략히 작성해주세요."
+                    placeholder="개발 관련 경험을 간략히 작성해주세요. (없으면 희망하는 분야, 30자 이상)"
                     className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
                     aria-invalid={Boolean(clientErrors.experience || state?.errors?.experience)}
                   />

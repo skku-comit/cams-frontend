@@ -54,7 +54,7 @@ body {
 
 /* Segmented control option (radio button visual) */
 @utility segmented-option {
-  @apply px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none peer-checked:bg-purple-500 peer-checked:text-black;
+  @apply px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none peer-checked:bg-purple-300 peer-checked:border-black/20 peer-checked:text-black;
 }
 
 /* --- Mobile input zoom prevention & picker scroll control --- */

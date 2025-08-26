@@ -3,24 +3,40 @@
 import { z } from "zod";
 
 // 회원가입 스키마 (폼의 name과 일치)
-const signupSchema = z.object({
-  name: z.string().min(1, "이름은 필수입니다"),
-  gender: z.enum(["male", "female"], {
-    errorMap: () => ({ message: "성별을 선택하세요" }),
-  }),
-  birthdate: z.string().min(1, "생년월일은 필수입니다"),
-  phone: z.string().min(9, "전화번호를 올바르게 입력하세요"),
-  major: z.string().min(1, "학과를 입력하세요"),
-  studentId: z.string().regex(/^\d{10}$/, { message: "학번은 숫자 10자리여야 합니다" }),
-  status: z.enum(["enrolled", "graduated", "on_leave"], {
-    errorMap: () => ({ message: "학적 상태를 선택하세요" }),
-  }),
-  campus: z.enum(["seoul", "suwon", "cheon_an"], {
-    errorMap: () => ({ message: "캠퍼스를 선택하세요" }),
-  }),
-  reason: z.string().min(1, "가입 이유를 입력하세요"),
-  experience: z.string().min(1, "개발 경험을 입력하세요"),
-});
+const signupSchema = z
+  .object({
+    name: z.string().min(1, "이름은 필수입니다"),
+    gender: z.enum(["male", "female"], {
+      errorMap: () => ({ message: "성별을 선택하세요" }),
+    }),
+    birthdate: z.string().min(1, "생년월일은 필수입니다"),
+    phone: z.string().min(9, "전화번호를 올바르게 입력하세요"),
+    major: z.string().min(1, "학과를 입력하세요"),
+    studentId: z.string().regex(/^\d{10}$/, { message: "학번은 숫자 10자리여야 합니다" }),
+    status: z.enum(["enrolled", "graduated", "on_leave"], {
+      errorMap: () => ({ message: "학적 상태를 선택하세요" }),
+    }),
+    campus: z.enum(["seoul", "suwon", "blank"], {
+      errorMap: () => ({ message: "캠퍼스를 선택하세요" }),
+    }),
+    reasons: z
+      .array(z.enum(["스터디", "세미나", "프로젝트", "대회 참여", "네트워킹(친목 활동 포함)", "기타"]))
+      .nonempty({ message: "가입 이유를 하나 이상 선택하세요" }),
+    reasonEtc: z.string().optional(),
+    experience: z.string().min(1, "개발 경험을 입력하세요"),
+  })
+  .refine(
+    (data) => {
+      if (data.reasons.includes("기타")) {
+        return Boolean((data.reasonEtc || "").trim());
+      }
+      return true;
+    },
+    {
+      message: "'기타' 선택 시 내용을 입력하세요",
+      path: ["reasonEtc"],
+    }
+  );
 
 export async function submitInfo(prevState, formData) {
   // 네트워크 지연 시뮬레이션
@@ -36,7 +52,8 @@ export async function submitInfo(prevState, formData) {
       studentId: formData.get("studentId") ?? "",
       status: formData.get("status") ?? "",
       campus: formData.get("campus") ?? "",
-      reason: formData.get("reason") ?? "",
+      reasons: (formData.getAll("reasons") || []).map((v) => String(v)).filter(Boolean),
+      reasonEtc: String(formData.get("reasonEtc") ?? "").trim(),
       experience: formData.get("experience") ?? "",
     };
 
@@ -61,6 +78,12 @@ export async function submitInfo(prevState, formData) {
       String(v || "")
         .replace(/-/g, "_")
         .toUpperCase();
+    const reasonList = validated.data.reasons.includes("기타")
+      ? validated.data.reasons
+          .map((r) => (r === "기타" ? (validated.data.reasonEtc || "").trim() || "기타" : r))
+          .filter(Boolean)
+      : validated.data.reasons;
+
     const payload = {
       name: validated.data.name,
       studentId: validated.data.studentId,
@@ -69,8 +92,8 @@ export async function submitInfo(prevState, formData) {
       gender: toUpperEnum(validated.data.gender), // MALE/FEMALE
       department: validated.data.major,
       enrollmentStatus: toUpperEnum(validated.data.status), // ENROLLED/GRADUATED/ON_LEAVE
-      campus: toUpperEnum(validated.data.campus), // SEOUL/SUWON/CHEON_AN
-      joinReason: validated.data.reason,
+      campus: toUpperEnum(validated.data.campus), // SEOUL/SUWON/BLANK
+      joinReason: reasonList.join(", "),
       devExperience: validated.data.experience,
       isFeePaid: false,
     };
