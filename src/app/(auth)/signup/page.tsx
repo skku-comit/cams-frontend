@@ -591,13 +591,20 @@ export default function SignupPage() {
             {/* 바텀시트 모달 */}
             {isBirthSheetOpen && (
               <div className="fixed inset-0 z-50">
-                {/* 오버레이(외부 클릭 차단, 닫힘 없음) */}
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-auto" aria-hidden></div>
-                {/* 시트 */}
+                {/* 오버레이: 모바일은 닫힘 비활성화, 태블릿 이상에서는 클릭 시 닫기 */}
+                <div
+                  className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-auto"
+                  onClick={() => {
+                    // 최소 태블릿(768px 이상)에서만 오버레이 클릭으로 닫기
+                    if (typeof window !== "undefined" && window.innerWidth >= 768) setIsBirthSheetOpen(false);
+                  }}
+                  aria-hidden
+                ></div>
+                {/* 컨테이너: 모바일=바텀시트, 태블릿+=중앙 모달 */}
                 <div
                   role="dialog"
                   aria-modal="true"
-                  className="absolute left-0 right-0 bottom-0 rounded-t-2xl bg-white shadow-2xl border-t border-black/10"
+                  className="absolute left-0 right-0 bottom-0 rounded-t-2xl bg-white shadow-2xl border-t border-black/10 md:left-1/2 md:right-auto md:top-1/2 md:bottom-auto md:-translate-x-1/2 md:-translate-y-1/2 md:w-[520px] md:rounded-2xl md:border md:border-black/10"
                 >
                   <div className="px-4.5 pt-3 pb-2 flex items-center justify-between">
                     <button
@@ -607,11 +614,11 @@ export default function SignupPage() {
                     >
                       취소
                     </button>
-                    <p className="text-base font-medium text-neutral-800">생년월일 선택</p>
+                    <p className="text-base font-semibold text-neutral-800">생년월일 선택</p>
                     <button
                       type="button"
                       onClick={confirmBirthSheet}
-                      className="text-[15px] text-purple-700 active:opacity-70"
+                      className="text-[15px] font-semibold text-purple-700 active:opacity-70"
                     >
                       완료
                     </button>
@@ -623,8 +630,8 @@ export default function SignupPage() {
                       style={{ height: 36 }}
                     />
                     {/* 위/아래 그라데이션 마스크 */}
-                    <div className="pointer-events-none absolute left-0 right-0 top-0 h-20 bg-gradient-to-b from-white to-transparent z-20" />
-                    <div className="pointer-events-none absolute left-0 right-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent z-20" />
+                    <div className="pointer-events-none md:hidden absolute left-0 right-0 top-0 h-20 bg-gradient-to-b from-white to-transparent z-20" />
+                    <div className="pointer-events-none md:hidden absolute left-0 right-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent z-20" />
                     <div className="relative rounded-xl bg-white overflow-hidden overscroll-contain">
                       <Picker
                         className="picker-no-guides font-medium text-[18px]"
