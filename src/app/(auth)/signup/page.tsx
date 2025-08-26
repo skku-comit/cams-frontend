@@ -56,20 +56,6 @@ export default function SignupPage() {
     setBirth(value as { year: string; month: string; day: string });
   }
 
-  function lockBodyScroll() {
-    try {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overscrollBehavior = "contain";
-    } catch {}
-  }
-
-  function unlockBodyScroll() {
-    try {
-      document.body.style.overflow = "";
-      document.documentElement.style.overscrollBehavior = "auto";
-    } catch {}
-  }
-
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 3));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
@@ -307,15 +293,13 @@ export default function SignupPage() {
                   >
                     <label className="cursor-pointer">
                       <input type="radio" name="gender" value="male" className="peer sr-only" />
-                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
+                      <div className="rounded-l-xl segmented-option">
                         <span className="">남성</span>
                       </div>
                     </label>
                     <label className="cursor-pointer -translate-x-0.25">
                       <input type="radio" name="gender" value="female" className="peer sr-only" />
-                      <div className="rounded-r-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        여성
-                      </div>
+                      <div className="rounded-r-xl segmented-option">여성</div>
                     </label>
                   </div>
                   {(clientErrors.gender || state?.errors?.gender) && (
@@ -326,9 +310,6 @@ export default function SignupPage() {
                   <label className="block text-[15px] font-medium mb-1 text-neutral-700">생년월일</label>
                   <div
                     ref={pickerBoxRef}
-                    onTouchStart={lockBodyScroll}
-                    onTouchEnd={unlockBodyScroll}
-                    onTouchCancel={unlockBodyScroll}
                     className="w-full rounded-xl px-[11px] py-0.5 border border-black/10 bg-white text-neutral-900 overflow-hidden no-overscroll"
                     aria-invalid={Boolean(clientErrors.birthdate || state?.errors?.birthdate)}
                   >
@@ -416,21 +397,15 @@ export default function SignupPage() {
                   >
                     <label className="cursor-pointer">
                       <input type="radio" name="status" value="enrolled" className="peer sr-only" />
-                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        재학
-                      </div>
+                      <div className="rounded-l-xl segmented-option">재학</div>
                     </label>
                     <label className="cursor-pointer">
                       <input type="radio" name="status" value="graduated" className="peer sr-only" />
-                      <div className="-translate-x-0.25 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        졸업
-                      </div>
+                      <div className="-translate-x-0.25 segmented-option">졸업</div>
                     </label>
                     <label className="cursor-pointer">
                       <input type="radio" name="status" value="on_leave" className="peer sr-only" />
-                      <div className="rounded-r-xl -translate-x-0.5 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        휴학
-                      </div>
+                      <div className="rounded-r-xl -translate-x-0.5 segmented-option">휴학</div>
                     </label>
                   </div>
                   {(clientErrors.status || state?.errors?.status) && (
@@ -445,21 +420,15 @@ export default function SignupPage() {
                   >
                     <label className="cursor-pointer">
                       <input type="radio" name="campus" value="seoul" className="peer sr-only" />
-                      <div className="rounded-l-xl px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        서울
-                      </div>
+                      <div className="rounded-l-xl segmented-option">서울</div>
                     </label>
                     <label className="cursor-pointer">
                       <input type="radio" name="campus" value="suwon" className="peer sr-only" />
-                      <div className="-translate-x-0.25 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        수원
-                      </div>
+                      <div className="-translate-x-0.25 segmented-option">수원</div>
                     </label>
                     <label className="cursor-pointer">
                       <input type="radio" name="campus" value="blank" className="peer sr-only" />
-                      <div className="rounded-r-xl -translate-x-0.5 px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none transition-colors peer-checked:bg-neutral-400 peer-checked:text-black">
-                        해당없음
-                      </div>
+                      <div className="rounded-r-xl -translate-x-0.5 segmented-option">해당없음</div>
                     </label>
                   </div>
                   {(clientErrors.campus || state?.errors?.campus) && (
