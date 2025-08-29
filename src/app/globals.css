@@ -1,4 +1,5 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+@import url("flatpickr/dist/flatpickr.min.css");
 @import "tailwindcss";
 
 :root {
@@ -33,14 +34,6 @@ body {
   }
 }
 
-/* Glassmorphism utilities */
-@utility glass-card {
-  background-color: rgb(147 51 234 / 0.1); /* purple-600 at 10% */
-  backdrop-filter: blur(12px);
-  border: 1px solid rgb(147 51 234 / 0.25); /* purple-600 at 25% */
-  box-shadow: 0 10px 30px rgb(147 51 234 / 0.2); /* purple glow */
-}
-
 @utility glass-input {
   background-color: rgb(147 51 234 / 0.08);
   backdrop-filter: blur(10px);
@@ -54,7 +47,38 @@ body {
 
 /* Segmented control option (radio button visual) */
 @utility segmented-option {
-  @apply px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none peer-checked:bg-purple-300 peer-checked:border-black/20 peer-checked:text-black;
+  @apply px-6 py-[13px] border border-black/10 bg-white text-neutral-700 placeholder-black/60 focus:outline-none peer-checked:bg-purple-300 peer-checked:border-black/20 peer-checked:text-neutral-900 peer-checked:font-medium;
+}
+
+/* --- Step transition animations --- */
+@keyframes step-fade-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes step-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-fade-out {
+  animation: step-fade-out 0.5s ease forwards;
+}
+
+.step-fade-in {
+  animation: step-fade-in 0.7s ease;
 }
 
 /* --- Mobile input zoom prevention & picker scroll control --- */
@@ -89,6 +113,54 @@ input[type="password"] {
 .picker-no-guides > div:last-child > div {
   /* 라이브러리가 중앙선 2개를 절대 위치로 그려주므로 투명화 */
   background: transparent !important;
+}
+
+/* flatpickr 기본 스타일 */
+/* 보라색 계열 테마 커스텀 */
+.flatpickr-calendar {
+  border: 1px solid rgb(147 51 234 / 0.2);
+  box-shadow: 0 10px 30px rgb(147 51 234 / 0.18);
+}
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .numInputWrapper:hover {
+  background: rgb(147 51 234 / 0.06);
+}
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover {
+  background: rgb(147 51 234);
+  border-color: rgb(147 51 234);
+  color: white;
+}
+.flatpickr-day.today {
+  border-color: rgb(147 51 234);
+}
+.flatpickr-weekday {
+  color: rgb(126 34 206);
+}
+.flatpickr-monthDropdown-months,
+.numInputWrapper input,
+.flatpickr-time input {
+  color: #111827; /* neutral-900 */
+}
+
+/* flatpickr 월 드롭다운 option에 보라색 배경 적용 */
+select.flatpickr-monthDropdown-months option.flatpickr-monthDropdown-month,
+option.flatpickr-monthDropdown-month {
+  background-color: rgb(147 51 234);
+  color: #000000;
+}
+
+/* hover/selected 상태 스타일 */
+select.flatpickr-monthDropdown-months option.flatpickr-monthDropdown-month:hover {
+  background-color: #b4a0e4;
+  color: #000000;
+}
+select.flatpickr-monthDropdown-months option.flatpickr-monthDropdown-month:checked,
+select.flatpickr-monthDropdown-months option.flatpickr-monthDropdown-month[selected] {
+  background-color: rgb(126 34 206);
+  color: #ffffff;
 }
 
 /* Animated floating gradient orbs */

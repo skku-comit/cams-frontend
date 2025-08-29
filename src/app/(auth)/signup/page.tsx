@@ -1,5 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Options as FlatpickrOptions } from "flatpickr/dist/types/options";
+import type { Instance as FlatpickrInstance } from "flatpickr/dist/types/instance";
+import type { CustomLocale } from "flatpickr/dist/types/locale";
 import Link from "next/link";
 import { useActionState } from "react";
 import { submitInfo } from "@/actions/signup";
@@ -7,6 +10,8 @@ import Picker from "react-mobile-picker";
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
   const [phone, setPhone] = useState<string>("");
   const [birth, setBirth] = useState<{ year: string; month: string; day: string }>({
     year: String(new Date().getFullYear() - 18),
@@ -18,6 +23,8 @@ export default function SignupPage() {
   const [birthDraft, setBirthDraft] = useState<{ year: string; month: string; day: string }>(() => ({ ...birth }));
   const [isBirthPicked, setIsBirthPicked] = useState(false);
   const pickerBoxRef = useRef<HTMLDivElement | null>(null);
+  const flatpickrInputRef = useRef<HTMLInputElement | null>(null);
+  const flatpickrInstanceRef = useRef<FlatpickrInstance | null>(null);
   type ActionState = {
     success?: boolean;
     message?: string;
@@ -64,6 +71,62 @@ export default function SignupPage() {
       setBirthDraft((prev) => ({ ...prev, day: maxDay }));
     }
   }, [draftDays, birthDraft.day]);
+
+  // 데스크탑(>=1024px)에서는 flatpickr 초기화
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth < 1024) return;
+    const input = flatpickrInputRef.current;
+    if (!input) return;
+    let disposed = false;
+    (async () => {
+      const mod = await import("flatpickr");
+      const { Korean } = await import("flatpickr/dist/l10n/ko.js");
+      const flatpickrFn = mod.default as (
+        element: HTMLElement,
+        config?: Partial<FlatpickrOptions>
+      ) => FlatpickrInstance;
+      if (disposed) return;
+      const options: Partial<FlatpickrOptions> = {
+        dateFormat: "Y-m-d",
+        defaultDate: `${birth.year}-${birth.month}-${birth.day}`,
+        locale: (Korean as unknown as CustomLocale) ?? undefined,
+        maxDate: "2007-12-31",
+        onChange: (selectedDates) => {
+          const d = selectedDates?.[0];
+          if (!d) return;
+          const y = String(d.getFullYear());
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          setBirth({ year: y, month: m, day });
+          setBirthDraft({ year: y, month: m, day });
+          setIsBirthPicked(true);
+        },
+      };
+      const instance = flatpickrFn(input, options);
+      flatpickrInstanceRef.current = instance;
+    })();
+    return () => {
+      disposed = true;
+      try {
+        flatpickrInstanceRef.current?.destroy();
+      } catch {}
+      flatpickrInstanceRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 데스크탑에서 birth가 외부 요인으로 바뀌면 flatpickr 표시값 동기화
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth < 1024) return;
+    const inst = flatpickrInstanceRef.current;
+    if (inst) {
+      try {
+        inst.setDate(`${birth.year}-${birth.month}-${birth.day}`, false, "Y-m-d");
+      } catch {}
+    }
+  }, [birth.year, birth.month, birth.day]);
 
   // 바텀시트 오픈 시 배경 스크롤/오버스크롤 완전 차단
   const scrollLockRef = useRef<number>(0);
@@ -134,8 +197,20 @@ export default function SignupPage() {
     setIsBirthSheetOpen(false);
   };
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 3));
+  // nextStep는 사용하지 않음(전환 헬퍼 사용)
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+
+  function startForwardTransition(targetStep?: number) {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsTransitioning(false);
+      if (typeof targetStep === "number") setStep(targetStep);
+      else setStep((prev) => Math.min(prev + 1, 4));
+      setIsEntering(true);
+      setTimeout(() => setIsEntering(false), 700);
+    }, 300);
+  }
 
   // 서버 액션 제출은 form 의 action 으로 처리
 
@@ -146,6 +221,7 @@ export default function SignupPage() {
     const fd = formEl ? new FormData(formEl) : new FormData();
     const get = (key: string) => String(fd.get(key) ?? "").trim();
     return {
+      referral: get("referral"),
       name: get("name"),
       gender: get("gender"),
       birthdate: `${birth.year}-${birth.month}-${birth.day}`,
@@ -198,6 +274,12 @@ export default function SignupPage() {
     return errors;
   }
 
+  function validateReferral(values: ReturnType<typeof getFormSnapshot>) {
+    const errors: Record<string, string> = {};
+    if (!values.referral) errors.referral = "하나를 선택해주세요.";
+    return errors;
+  }
+
   function validateStep3(values: ReturnType<typeof getFormSnapshot>) {
     const errors: Record<string, string> = {};
     const reasons = Array.isArray(values.reasons) ? values.reasons : [];
@@ -217,7 +299,12 @@ export default function SignupPage() {
 
   function validateAll() {
     const snapshot = getFormSnapshot();
-    return mergeErrors(validateStep1(snapshot), validateStep2(snapshot), validateStep3(snapshot));
+    return mergeErrors(
+      validateReferral(snapshot),
+      validateStep1(snapshot),
+      validateStep2(snapshot),
+      validateStep3(snapshot)
+    );
   }
 
   function scrollToFirstError() {
@@ -234,14 +321,14 @@ export default function SignupPage() {
 
   function handleNextStep() {
     const snapshot = getFormSnapshot();
-    const errors = step === 1 ? validateStep1(snapshot) : validateStep2(snapshot);
+    const errors = step === 2 ? validateStep1(snapshot) : validateStep2(snapshot);
     if (Object.keys(errors).length > 0) {
       setClientErrors(errors);
       scrollToFirstError();
       return;
     }
     setClientErrors({});
-    nextStep();
+    startForwardTransition();
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -249,12 +336,14 @@ export default function SignupPage() {
     if (Object.keys(errors).length > 0) {
       e.preventDefault();
       setClientErrors(errors);
-      const step1Keys = ["name", "gender", "birthdate", "phone"];
-      const step2Keys = ["major", "studentId", "status", "campus"];
+      const step1Keys = ["referral"];
+      const step2Keys = ["name", "gender", "birthdate", "phone"];
+      const step3Keys = ["major", "studentId", "status", "campus"];
       const keys = Object.keys(errors);
       if (keys.some((k) => step1Keys.includes(k))) setStep(1);
       else if (keys.some((k) => step2Keys.includes(k))) setStep(2);
-      else setStep(3);
+      else if (keys.some((k) => step3Keys.includes(k))) setStep(3);
+      else setStep(4);
       scrollToFirstError();
       return;
     }
@@ -296,20 +385,26 @@ export default function SignupPage() {
 
   const stepHeadingMap: Record<number, React.ReactNode> = {
     1: (
+      <div className="mt-9 mb-6">
+        반갑습니다<span className="text-2xl">🤚</span> <br />
+        어떻게 알고 오셨나요?
+      </div>
+    ),
+    2: (
       <>
         가입을 위해 기본적인
         <br />
         인적사항을 입력해 주세요
       </>
     ),
-    2: (
+    3: (
       <>
         성균관대학교 재적
         <br />
         관련 정보를 입력해 주세요
       </>
     ),
-    3: (
+    4: (
       <>
         미래 부원에 대해서
         <br />더 자세히 알고 싶어요
@@ -339,7 +434,11 @@ export default function SignupPage() {
           </button>
         )}
         {!state?.success ? (
-          <h2 className="text-[1.3rem] leading-7.5 font-bold text-left text-neutral-800 mb-3 mt-4.5">
+          <h2
+            className={`text-[1.3rem] leading-7.5 font-bold text-left text-neutral-800 mb-3 mt-4.5 ${
+              isEntering ? "step-fade-in" : isTransitioning ? "step-fade-out" : ""
+            }`}
+          >
             {stepHeadingMap[step]}
           </h2>
         ) : (
@@ -356,9 +455,37 @@ export default function SignupPage() {
               onSubmit={handleSubmit}
               onChange={handleFormChange}
               onInput={handleFormChange}
-              className="w-full space-y-4 text-[15px]"
+              className={`w-full space-y-4 text-[15px] ${
+                isEntering ? "step-fade-in" : isTransitioning ? "step-fade-out" : ""
+              }`}
             >
               <div className={step === 1 ? "space-y-4" : "hidden"}>
+                <div>
+                  <div
+                    className="grid grid-cols-1 gap-1.5"
+                    aria-invalid={Boolean(clientErrors.referral || state?.errors?.referral)}
+                  >
+                    {["인스타그램", "에브리타임 게시물", "지인 추천 및 입소문", "기타"].map((label) => (
+                      <label key={label} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="referral"
+                          value={label}
+                          className="peer sr-only"
+                          onChange={() => startForwardTransition(2)}
+                        />
+                        <div className="rounded-xl segmented-option text-left">
+                          <span>{label}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {(clientErrors.referral || state?.errors?.referral) && (
+                    <p className="text-red-400 text-xs mt-1">{clientErrors.referral || state?.errors?.referral}</p>
+                  )}
+                </div>
+              </div>
+              <div className={step === 2 ? "space-y-4" : "hidden"}>
                 <div>
                   <label className="block text-[15px] text-neutral-700 font-medium mb-1">이름</label>
                   <input
@@ -395,7 +522,7 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-neutral-700">생년월일</label>
-                  {/* 트리거: 읽기 전용 입력처럼 보이는 버튼 */}
+                  {/* 모바일/태블릿: 기존 바텀시트 트리거 */}
                   <div
                     ref={pickerBoxRef}
                     role="button"
@@ -407,7 +534,7 @@ export default function SignupPage() {
                         openBirthSheet();
                       }
                     }}
-                    className="w-full rounded-xl px-[11px] h-11 border border-black/10 bg-white text-neutral-900 flex items-center justify-between cursor-pointer select-none"
+                    className="lg:hidden w-full rounded-xl px-[11px] h-11 border border-black/10 bg-white text-neutral-900 flex items-center justify-between cursor-pointer select-none"
                     data-error={Boolean(clientErrors.birthdate || state?.errors?.birthdate) ? "true" : undefined}
                   >
                     {isBirthPicked ? (
@@ -425,6 +552,15 @@ export default function SignupPage() {
                       />
                     </svg>
                   </div>
+                  {/* 데스크탑: flatpickr 인풋 */}
+                  <input
+                    ref={flatpickrInputRef}
+                    type="text"
+                    placeholder="날짜 선택"
+                    className="hidden lg:block w-full rounded-xl px-[11px] h-11 border border-black/10 bg-white text-neutral-900 focus:outline-none caret-purple-800"
+                    aria-invalid={Boolean(clientErrors.birthdate || state?.errors?.birthdate)}
+                    readOnly
+                  />
                   <input type="hidden" name="birthdate" value={`${birth.year}-${birth.month}-${birth.day}`} />
                   {(clientErrors.birthdate || state?.errors?.birthdate) && (
                     <p className="text-red-400 text-xs mt-1">{clientErrors.birthdate || state?.errors?.birthdate}</p>
@@ -447,8 +583,8 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Step 2 */}
-              <div className={step === 2 ? "space-y-4" : "hidden"}>
+              {/* Step 3 */}
+              <div className={step === 3 ? "space-y-4" : "hidden"}>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-black">학과</label>
                   <input
@@ -525,8 +661,8 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Step 3 */}
-              <div className={step === 3 ? "space-y-4" : "hidden"}>
+              {/* Step 4 */}
+              <div className={step === 4 ? "space-y-4" : "hidden"}>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-black">가입 이유</label>
                   <div
@@ -566,8 +702,8 @@ export default function SignupPage() {
                   <textarea
                     name="experience"
                     rows={3}
-                    placeholder="개발 관련 경험을 간략히 작성해주세요. (없으면 희망하는 분야, 30자 이상)"
-                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
+                    placeholder={"개발 관련 경험을 간략히 작성해주세요.\n(없으면 희망하는 분야, 30자 이상)"}
+                    className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800 whitespace-pre-line"
                     aria-invalid={Boolean(clientErrors.experience || state?.errors?.experience)}
                   />
                   {(clientErrors.experience || state?.errors?.experience) && (
@@ -582,13 +718,13 @@ export default function SignupPage() {
               )}
 
               <div className="mt-6 w-full">
-                {step < 3 && (
+                {step > 1 && step < 4 && (
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    disabled={(step === 1 && !step1Filled) || (step === 2 && !step2Filled)}
-                    className={`w-full rounded-xl h-10 flex items-center justify-center active:scale-[0.98] transition ${
-                      (step === 1 && !step1Filled) || (step === 2 && !step2Filled)
+                    disabled={(step === 2 && !step1Filled) || (step === 3 && !step2Filled)}
+                    className={`w-full rounded-xl h-10 flex items-center justify-center hover:cursor-pointer active:scale-[0.98] transition ${
+                      (step === 2 && !step1Filled) || (step === 3 && !step2Filled)
                         ? "bg-neutral-400 text-gray-200"
                         : "bg-purple-500 text-neutral-800"
                     }`}
@@ -596,7 +732,7 @@ export default function SignupPage() {
                     <span className="select-none leading-5 font-medium">다음</span>
                   </button>
                 )}
-                {step === 3 && (
+                {step === 4 && (
                   <button
                     type="submit"
                     disabled={isPending || !step3Filled}
@@ -620,7 +756,7 @@ export default function SignupPage() {
             </form>
             {/* 바텀시트 모달 */}
             {isBirthSheetOpen && (
-              <div className="fixed inset-0 z-50">
+              <div className="lg:hidden fixed inset-0 z-50">
                 {/* 오버레이: 모바일은 닫힘 비활성화, 태블릿 이상에서는 클릭 시 닫기 */}
                 <div
                   className="absolute inset-0 bg-black/40 backdrop-blur-[1px] pointer-events-auto"
@@ -640,7 +776,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setIsBirthSheetOpen(false)}
-                      className="text-[15px] text-purple-700 active:opacity-70"
+                      className="text-[15px] text-purple-700 active:opacity-70 hover:cursor-pointer"
                     >
                       취소
                     </button>
@@ -648,7 +784,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={confirmBirthSheet}
-                      className="text-[15px] font-semibold text-purple-700 active:opacity-70"
+                      className="text-[15px] font-semibold hover:cursor-pointer text-purple-700 active:opacity-70"
                     >
                       완료
                     </button>
@@ -731,7 +867,7 @@ export default function SignupPage() {
               </svg>
             </div>
             <p className="relative text-[16px] leading-6 font-medium">코밋 부원이 되신 것을 환영합니다!</p>
-            <p className="relative mt-1 text-[13px] leading-5 text-neutral-600">
+            <p className="relative mt-1 text-[13px] leading-5 text-neutral-700">
               회비 입금 확인 후 최종 가입 처리됩니다
             </p>
 
@@ -750,8 +886,8 @@ export default function SignupPage() {
             >
               <div className="flex justify-between flex-col text-center">
                 <div>
-                  <p className="text-[12px] text-neutral-500">입금 계좌</p>
-                  <p className="mt-0.5 text-[14px] font-semibold tracking-tight">{accountLabel}</p>
+                  <p className="text-[13px] text-neutral-500">입금 계좌</p>
+                  <p className="mt-0.5 text-[15px] font-semibold tracking-tight">{accountLabel}</p>
                 </div>
                 <button
                   type="button"
@@ -770,13 +906,13 @@ export default function SignupPage() {
 
             <div className="relative mt-4 grid grid-cols-2 gap-2 text-left text-[12px]">
               <div className="rounded-xl border border-black/10 bg-white p-3">
-                <p className="text-neutral-500">회비</p>
-                <p className="mt-0.5 text-[14px] font-semibold">15,000원</p>
+                <p className="text-neutral-500 text-[13px]">회비</p>
+                <p className="mt-0.5 text-[15px] font-semibold">15,000원</p>
               </div>
-              <div className="rounded-xl border border-black/10 bg-white p-3">
-                <p className="text-neutral-500">문의</p>
-                <p className="mt-0.5 text-[14px] font-semibold">카카오톡 오픈톡</p>
-                <p className="mt-0.5 text-[14px] font-semibold">인스타그램 DM</p>
+              <div className="rounded-xl border border-black/10 bg-white p-3 text-[15px] font-semibold">
+                <p className="text-neutral-500 text-[13px]">문의</p>
+                <p className="mt-0.5">카카오톡 오픈톡</p>
+                <p className="mt-0.5">인스타그램 DM</p>
               </div>
             </div>
 

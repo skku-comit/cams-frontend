@@ -5,6 +5,9 @@ import { z } from "zod";
 // 회원가입 스키마 (폼의 name과 일치)
 const signupSchema = z
   .object({
+    referral: z.enum(["인스타그램", "에브리타임 게시물", "지인 추천 및 입소문", "기타"], {
+      errorMap: () => ({ message: "하나를 선택해주세요" }),
+    }),
     name: z.string().min(1, "이름은 필수입니다"),
     gender: z.enum(["male", "female"], {
       errorMap: () => ({ message: "성별을 선택하세요" }),
@@ -44,6 +47,7 @@ export async function submitInfo(prevState, formData) {
 
   try {
     const rawData = {
+      referral: formData.get("referral") ?? "",
       name: formData.get("name") ?? "",
       gender: formData.get("gender") ?? "",
       birthdate: formData.get("birthdate") ?? "",
@@ -95,7 +99,6 @@ export async function submitInfo(prevState, formData) {
       campus: toUpperEnum(validated.data.campus), // SEOUL/SUWON/BLANK
       joinReason: reasonList.join(", "),
       devExperience: validated.data.experience,
-      isFeePaid: false,
     };
 
     const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "";

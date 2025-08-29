@@ -8,7 +8,7 @@ export default async function Home() {
   const isLoggedIn = cookieStore.get("cams_auth")?.value === "1";
   return (
     <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8">
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
         {/* My Study first */}
         <DashboardCardLink
           href={isLoggedIn ? "/my-study" : "/login"}

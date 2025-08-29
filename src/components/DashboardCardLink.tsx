@@ -13,7 +13,7 @@ export default function DashboardCardLink({ href, title, description, heightClas
   return (
     <Link
       href={href}
-      className={`glass-card rounded-2xl p-5 active:scale-[0.98] transition transform duration-150 border hover:shadow-[0_0_0_2px_rgba(138,43,226,0.5)] ${computedHeightClass}`}
+      className={`rounded-2xl p-5 active:scale-[0.98] transition transform duration-150 border hover:shadow-[0_0_0_2px_rgba(138,43,226,0.5)] ${computedHeightClass}`}
     >
       <div className="flex items-center justify-between">
         <span className="text-neutral-900 text-lg">{title}</span>
