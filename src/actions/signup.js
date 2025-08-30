@@ -15,11 +15,16 @@ const signupSchema = z
     birthdate: z.string().min(1, "생년월일은 필수입니다"),
     phone: z.string().min(9, "전화번호를 올바르게 입력하세요"),
     major: z.string().min(1, "학과를 입력하세요"),
+    // 부전공(선택): 폼에서 빈 문자열이면 undefined로 처리
+    minor: z.preprocess((val) => {
+      const s = String(val ?? "").trim();
+      return s === "" ? undefined : s;
+    }, z.string().min(1, "부전공을 올바르게 입력하세요").optional()),
     studentId: z.string().regex(/^\d{10}$/, { message: "학번은 숫자 10자리여야 합니다" }),
     status: z.enum(["enrolled", "graduated", "on_leave"], {
       errorMap: () => ({ message: "학적 상태를 선택하세요" }),
     }),
-    campus: z.enum(["seoul", "suwon", "blank"], {
+    campus: z.enum(["seoul", "suwon", "none"], {
       errorMap: () => ({ message: "캠퍼스를 선택하세요" }),
     }),
     reasons: z
@@ -53,6 +58,7 @@ export async function submitInfo(prevState, formData) {
       birthdate: formData.get("birthdate") ?? "",
       phone: formData.get("phone") ?? "",
       major: formData.get("major") ?? "",
+      minor: formData.get("minor") ?? "",
       studentId: formData.get("studentId") ?? "",
       status: formData.get("status") ?? "",
       campus: formData.get("campus") ?? "",
@@ -95,8 +101,10 @@ export async function submitInfo(prevState, formData) {
       phoneNumber: validated.data.phone, // 숫자만
       gender: toUpperEnum(validated.data.gender), // MALE/FEMALE
       department: validated.data.major,
+      subDepartment: validated.data.minor ?? "",
+      signupSource: validated.data.referral,
       enrollmentStatus: toUpperEnum(validated.data.status), // ENROLLED/GRADUATED/ON_LEAVE
-      campus: toUpperEnum(validated.data.campus), // SEOUL/SUWON/BLANK
+      campus: toUpperEnum(validated.data.campus), // SEOUL/SUWON/NONE
       joinReason: reasonList.join(", "),
       devExperience: validated.data.experience,
     };

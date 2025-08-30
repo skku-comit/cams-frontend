@@ -30,9 +30,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center px-4 py-6">
-      <div className="glass-card w-full max-w-md rounded-3xl p-6">
-        <h2 className="text-white text-2xl font-bold mb-2 text-center">로그인</h2>
-        <p className="text-white/70 mb-6 text-center">학번과 비밀번호로 로그인하세요</p>
+      <div className="w-full max-w-md rounded-3xl p-6 border border-black/10 bg-white shadow-sm">
+        <h2 className="text-neutral-900 text-2xl font-bold mb-2 text-center">로그인</h2>
+        <p className="text-neutral-600 mb-6 text-center">학번과 비밀번호로 로그인하세요</p>
 
         <form action={action} className="space-y-4">
           <input
@@ -41,37 +41,37 @@ export default function LoginPage() {
             value={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("from") || "/" : "/"}
           />
           {needAuth && (
-            <div className="rounded-xl bg-white/10 border border-white/10 p-3 text-white text-sm">
+            <div className="rounded-xl bg-purple-50 border border-purple-200 p-3 text-neutral-800 text-sm">
               로그인 후 이용 가능한 페이지입니다.
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1 text-white">학번</label>
+            <label className="block text-sm font-medium mb-1 text-neutral-800">학번</label>
             <input
               name="studentId"
               type="text"
               inputMode="numeric"
               placeholder="2024001234"
               maxLength={10}
-              className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-white placeholder-white/60"
+              className="w-full rounded-xl px-4 py-3 border border-black/10 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus-ring-primary"
               aria-invalid={Boolean(state?.errors?.studentId)}
             />
             {state?.errors?.studentId && <p className="text-red-400 text-xs mt-1">{state.errors.studentId}</p>}
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium mb-1 text-white">비밀번호</label>
+            <label className="block text-sm font-medium mb-1 text-neutral-800">비밀번호</label>
             <input
               name="password"
               type={showPw ? "text" : "password"}
               placeholder="비밀번호"
-              className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 pr-12 text-white placeholder-white/60"
+              className="w-full rounded-xl px-4 py-3 pr-12 border border-black/10 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus-ring-primary"
               aria-invalid={Boolean(state?.errors?.password)}
             />
             <button
               type="button"
               onClick={() => setShowPw((s) => !s)}
-              className="absolute right-3 bottom-3 text-white/70 text-sm"
+              className="absolute right-3 bottom-3 text-neutral-600 text-sm"
             >
               {showPw ? "숨김" : "표시"}
             </button>
@@ -85,11 +85,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="glass-button w-full rounded-xl py-3 font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full rounded-xl py-3 font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-purple-600 text-white hover:bg-purple-700"
           >
             {isPending ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-top-white border-t-white rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 처리중...
               </>
             ) : (

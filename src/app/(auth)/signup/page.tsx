@@ -347,6 +347,20 @@ export default function SignupPage() {
       scrollToFirstError();
       return;
     }
+    // 제출 직전: 학과 입력에서 '-'를 기준으로 주전공/부전공을 분리하여 hidden minor 반영 및 major 정규화
+    try {
+      const formEl = formRef.current;
+      if (formEl) {
+        const majorEl = formEl.querySelector('input[name="major"]') as HTMLInputElement | null;
+        const minorEl = formEl.querySelector('input[name="minor"]') as HTMLInputElement | null;
+        const raw = (majorEl?.value ?? "").trim();
+        const idx = raw.indexOf("-");
+        const majorPart = idx >= 0 ? raw.slice(0, idx).trim() : raw;
+        const minorPart = idx >= 0 ? raw.slice(idx + 1).trim() : "";
+        if (minorEl) minorEl.value = minorPart;
+        if (majorEl) majorEl.value = majorPart;
+      }
+    } catch {}
     setClientErrors({});
   }
 
@@ -586,17 +600,33 @@ export default function SignupPage() {
               {/* Step 3 */}
               <div className={step === 3 ? "space-y-4" : "hidden"}>
                 <div>
-                  <label className="block text-[15px] font-medium mb-1 text-black">학과</label>
+                  <label className="text-[15px] font-medium mb-1 text-black flex items-start justify-start gap-1">
+                    <span>학과</span>
+                    <span className="text-sm text-black/60">(부전공은 &quot;-&quot;으로 구분)</span>
+                  </label>
                   <input
                     name="major"
                     type="text"
-                    placeholder="소프트웨어학과"
+                    placeholder="철학과-소프트웨어학과"
                     className="w-full rounded-xl px-[11px] py-[13px] border border-black/10 bg-white text-black placeholder-black/60 focus:outline-none caret-purple-800"
                     aria-invalid={Boolean(clientErrors.major || state?.errors?.major)}
+                    onInput={() => {
+                      try {
+                        const formEl = formRef.current;
+                        if (!formEl) return;
+                        const majorEl = formEl.querySelector('input[name="major"]') as HTMLInputElement | null;
+                        const minorEl = formEl.querySelector('input[name="minor"]') as HTMLInputElement | null;
+                        const raw = (majorEl?.value ?? "").trim();
+                        const idx = raw.indexOf("-");
+                        const minorPart = idx >= 0 ? raw.slice(idx + 1).trim() : "";
+                        if (minorEl) minorEl.value = minorPart;
+                      } catch {}
+                    }}
                   />
                   {(clientErrors.major || state?.errors?.major) && (
                     <p className="text-red-400 text-xs mt-1">{clientErrors.major || state?.errors?.major}</p>
                   )}
+                  <input type="hidden" name="minor" />
                 </div>
                 <div>
                   <label className="block text-[15px] font-medium mb-1 text-black">학번</label>
@@ -651,7 +681,7 @@ export default function SignupPage() {
                       <div className="-translate-x-0.25 segmented-option">수원</div>
                     </label>
                     <label className="cursor-pointer">
-                      <input type="radio" name="campus" value="blank" className="peer sr-only" />
+                      <input type="radio" name="campus" value="none" className="peer sr-only" />
                       <div className="rounded-r-xl -translate-x-0.5 segmented-option">해당없음</div>
                     </label>
                   </div>
