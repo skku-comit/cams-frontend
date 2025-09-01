@@ -29,9 +29,9 @@ export default function LoginPage() {
   }, [needAuth]);
 
   return (
-    <div className="flex items-center justify-center px-4 py-6">
-      <div className="w-full max-w-md rounded-3xl p-6 border border-black/10 bg-white shadow-sm">
-        <h2 className="text-neutral-900 text-2xl font-bold mb-2 text-center">로그인</h2>
+    <div className="flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md glass-card">
+        <h2 className="text-neutral-900 text-2xl font-bold mb-2 text-center mt-4">로그인</h2>
         <p className="text-neutral-600 mb-6 text-center">학번과 비밀번호로 로그인하세요</p>
 
         <form action={action} className="space-y-4">
@@ -46,32 +46,32 @@ export default function LoginPage() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1 text-neutral-800">학번</label>
+            <label className="block text-sm font-medium mb-1 text-neutral-800">아이디 (학번)</label>
             <input
               name="studentId"
               type="text"
               inputMode="numeric"
               placeholder="2024001234"
               maxLength={10}
-              className="w-full rounded-xl px-4 py-3 border border-black/10 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus-ring-primary"
+              className="w-full rounded-xl px-4 py-3 border border-black/10 bg-white text-neutral-900 "
               aria-invalid={Boolean(state?.errors?.studentId)}
             />
             {state?.errors?.studentId && <p className="text-red-400 text-xs mt-1">{state.errors.studentId}</p>}
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium mb-1 text-neutral-800">비밀번호</label>
+            <label className="block text-sm font-medium mb-1 text-neutral-800">비밀번호 (생일 6자리)</label>
             <input
               name="password"
               type={showPw ? "text" : "password"}
-              placeholder="비밀번호"
-              className="w-full rounded-xl px-4 py-3 pr-12 border border-black/10 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus-ring-primary"
+              placeholder="040826"
+              className="w-full rounded-xl px-4 py-3 pr-12 border border-black/10 bg-white text-neutral-900 "
               aria-invalid={Boolean(state?.errors?.password)}
             />
             <button
               type="button"
               onClick={() => setShowPw((s) => !s)}
-              className="absolute right-3 bottom-3 text-neutral-600 text-sm"
+              className="absolute right-3 bottom-3.5 text-neutral-600 text-sm"
             >
               {showPw ? "숨김" : "표시"}
             </button>

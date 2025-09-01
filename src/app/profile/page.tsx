@@ -17,13 +17,13 @@ export default function ProfilePage() {
               </button>
             </div>
             <div>
-              <div className="text-white text-lg font-semibold">홍길동</div>
-              <div className="text-white/70 text-sm">20231234</div>
+              <div className="text-neutral-900 text-lg font-semibold">홍길동</div>
+              <div className="text-neutral-700 text-sm">20231234</div>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {["React", "TypeScript", "Next.js", "Algorithm"].map((tag) => (
-              <span key={tag} className="rounded-full bg-white/15 text-white text-xs px-3 py-1">
+              <span key={tag} className="rounded-full bg-white/15 text-neutral-800 text-xs px-3 py-1">
                 {tag}
               </span>
             ))}
@@ -35,17 +35,17 @@ export default function ProfilePage() {
           <div className="grid gap-3">
             <button
               onClick={() => setOpen(true)}
-              className="glass-card rounded-xl px-4 py-3 text-left hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]"
+              className="glass-card rounded-xl px-4 py-3 text-left text-neutral-900 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]"
             >
               내 정보 수정
             </button>
-            <button className="glass-card rounded-xl px-4 py-3 text-left hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
+            <button className="glass-card rounded-xl px-4 py-3 text-left text-neutral-900 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
               신청한 스터디 목록
             </button>
-            <button className="glass-card rounded-xl px-4 py-3 text-left hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
+            <button className="glass-card rounded-xl px-4 py-3 text-left text-neutral-900 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
               개설한 스터디 목록
             </button>
-            <button className="glass-card rounded-xl px-4 py-3 text-left hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
+            <button className="glass-card rounded-xl px-4 py-3 text-left text-neutral-900 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.2)]">
               로그아웃
             </button>
           </div>
@@ -57,26 +57,26 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
           <div className="glass-card w-full max-w-lg rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-lg font-semibold">내 정보 수정</h3>
-              <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white">
+              <h3 className="text-neutral-900 text-lg font-semibold">내 정보 수정</h3>
+              <button onClick={() => setOpen(false)} className="text-neutral-600 hover:text-neutral-800">
                 닫기
               </button>
             </div>
             <div className="grid gap-3">
               <input
                 placeholder="이름"
-                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-white placeholder-white/60"
+                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-neutral-900 placeholder-neutral-500"
               />
               <input
                 placeholder="학번"
-                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-white placeholder-white/60"
+                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-neutral-900 placeholder-neutral-500"
               />
               <input
                 placeholder="기술 스택(쉼표로 구분)"
-                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-white placeholder-white/60"
+                className="glass-input focus-ring-primary rounded-xl px-4 py-3 text-neutral-900 placeholder-neutral-500"
               />
               <div className="flex justify-end gap-2 mt-2">
-                <button onClick={() => setOpen(false)} className="glass-card rounded-xl px-4 py-2">
+                <button onClick={() => setOpen(false)} className="glass-card rounded-xl px-4 py-2 text-neutral-900">
                   취소
                 </button>
                 <button className="glass-button rounded-xl px-4 py-2">저장</button>
