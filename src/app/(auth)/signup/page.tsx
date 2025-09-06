@@ -427,7 +427,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 py-2">
+    <div className="flex items-center justify-center px-4 py-2 ">
       <div className="w-full max-w-md">
         {!state?.success && step > 1 && (
           <button
