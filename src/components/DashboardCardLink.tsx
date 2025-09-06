@@ -16,8 +16,8 @@ export default function DashboardCardLink({ href, title, description, heightClas
       className={`glass-card active:scale-[0.98] transition transform duration-150 border ${computedHeightClass}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-neutral-900 text-lg">{title}</span>
-        <span className="text-neutral-700">→</span>
+        <span className="text-neutral-800 text-lg font-medium">{title}</span>
+        <span className="text-neutral-600">→</span>
       </div>
       {description ? <div className="mt-2 text-neutral-700 text-sm">{description}</div> : null}
     </Link>

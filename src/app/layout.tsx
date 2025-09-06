@@ -28,11 +28,24 @@ export default function RootLayout({
             {/* Displace the blurred backdrop with noise to simulate liquid glass */}
             <feDisplacementMap in="blur" in2="noise" scale={8} xChannelSelector="R" yChannelSelector="G" />
           </filter>
+          {/* Stronger variant for hero cards (main page) */}
+          <filter id="frosted-strong" primitiveUnits="objectBoundingBox">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="blur" />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.012 0.022"
+              numOctaves={3}
+              seed={3}
+              stitchTiles="stitch"
+              result="noise"
+            />
+            <feDisplacementMap in="blur" in2="noise" scale={28} xChannelSelector="R" yChannelSelector="G" />
+          </filter>
         </svg>
         {/* Mobile-only background image filling the page */}
-        <div className="absolute inset-0 pointer-events-none bg-[#d9d9db]">
-          <div className="relative w-full h-full max-w-105 z-0 mx-auto">
-            <Image src="/bg1.png" alt="bg" fill className="object-cover" />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="relative size-full max-w-105 z-0 mx-auto">
+            <Image src="/bg2.png" alt="bg" fill className="object-contain" />
           </div>
         </div>
         <header className="relative">
