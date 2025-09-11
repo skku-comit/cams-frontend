@@ -22,10 +22,11 @@ export default function HeaderBar() {
   const pathname = usePathname();
   const isLoggedIn = useIsLoggedIn();
   const showLogout = isLoggedIn && pathname !== "/";
+  const isStudiesSection = pathname.startsWith("/studies");
 
   return (
     <div className="px-5 py-6 h-15 sm:px-6 md:px-8 w-full">
-      <div className="flex items-center justify-between max-w-5xl mx-auto">
+      <div className={`flex items-center justify-between ${isStudiesSection ? "max-w-4xl" : "max-w-5xl"} mx-auto`}>
         <div className="flex items-center ml-2">
           <Link href="/" className="inline-flex items-center gap-2">
             <Image src="/logo-purple.png" alt="CoMit Logo" width={30} height={12} className="object-contain" />

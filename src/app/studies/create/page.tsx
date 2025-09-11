@@ -129,20 +129,25 @@ export default function CreateCoursePage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-4 md:px-6 md:py-6 lg:px-8">
-      <div className="mb-6 md:mb-8">
+    <div className="mx-auto max-w-4xl px-4 py-4 md:px-6 md:py-6 lg:px-0">
+      <div className="mb-6 md:mb-6">
         <button onClick={() => router.back()} className="mb-3 text-[13px] text-gray-500 hover:text-gray-700 md:mb-4">
           ← 목록으로
         </button>
-        <h1 className="text-xl font-bold md:text-2xl">새로운 활동 개설</h1>
+        <div className="container px-5 lg:max-w-xl mx-auto mt-3">
+          <h1 className="text-[15px] break-keep md:text-lg lg:text-xl font-light italic leading-[1.5]">
+            &quot;다른 사람에게 배움을 주기 위해 완벽할 필요는 없다. 당신이 불완전함을 다루는 방식에 사람들이 영감을
+            받는다.&quot;
+          </h1>
+        </div>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="glass-card backdrop-blur-[9px] backdrop-brightness-110 !backdrop-saturate-60 rounded-2xl p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 border"
+        className="border border-black/10 shadow-2xl rounded-2xl p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8"
       >
         {/* 활동 유형 선택 */}
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <label className="block text-[14px] font-medium md:text-[15px]">활동 유형</label>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {["study", "project", "session"].map((type) => (
@@ -162,18 +167,18 @@ export default function CreateCoursePage() {
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* 기본 정보 */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="mb-1.5 block text-[14px] font-medium md:text-[15px]">활동명</label>
+            <label className="mb-1.5 block text-[14px] font-medium md:text-[15px]">스터디 이름</label>
             <input
               type="text"
               maxLength={15}
               value={formData.activity_name}
               onChange={(e) => setFormData((prev) => ({ ...prev, activity_name: e.target.value }))}
-              className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px] placeholder-black/60"
+              className="glass-input w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px] placeholder-black/60"
               placeholder="활동명을 입력하세요 (최대 15자)"
             />
           </div>
@@ -209,7 +214,7 @@ export default function CreateCoursePage() {
                 max="20"
                 value={formData.max_member}
                 onChange={(e) => setFormData((prev) => ({ ...prev, max_member: Number(e.target.value) }))}
-                className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
+                className="glass-input  w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
                 placeholder="2~20명"
               />
             </div>
@@ -218,7 +223,7 @@ export default function CreateCoursePage() {
               <select
                 value={formData.duration_week}
                 onChange={(e) => handleDurationChange(Number(e.target.value))}
-                className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
+                className="glass-inputy w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
               >
                 <option value={4}>4주</option>
                 <option value={8}>8주</option>
@@ -233,7 +238,7 @@ export default function CreateCoursePage() {
             <select
               value={formData.day_of_week}
               onChange={(e) => setFormData((prev) => ({ ...prev, day_of_week: e.target.value }))}
-              className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
+              className="glass-input y w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
             >
               {DAYS_OF_WEEK.map((day) => (
                 <option key={day.value} value={day.value}>
@@ -250,7 +255,7 @@ export default function CreateCoursePage() {
                 type="time"
                 value={formData.activity_start_time}
                 onChange={(e) => setFormData((prev) => ({ ...prev, activity_start_time: e.target.value }))}
-                className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
+                className="glass-input w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
               />
             </div>
             <div>
@@ -259,7 +264,7 @@ export default function CreateCoursePage() {
                 type="time"
                 value={formData.activity_end_time}
                 onChange={(e) => setFormData((prev) => ({ ...prev, activity_end_time: e.target.value }))}
-                className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
+                className="glass-input  w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
               />
             </div>
           </div>
@@ -313,7 +318,7 @@ export default function CreateCoursePage() {
                   }
                 }
               }}
-              className="glass-input focus-ring-primary flex-1 rounded-xl px-4 py-2 text-[13px]"
+              className="glass-input  flex-1 rounded-xl px-4 py-2 text-[13px]"
               placeholder="직접 입력 후 Enter 또는 추가 버튼 클릭"
             />
             <button
@@ -339,7 +344,7 @@ export default function CreateCoursePage() {
                 <textarea
                   value={week.learning_plan}
                   onChange={(e) => handleCurriculumChange(week.week_index, e.target.value)}
-                  className="glass-input focus-ring-primary min-h-[30px] w-full rounded-xl px-3 py-2 text-[13px]"
+                  className="glass-input min-h-[30px] w-full rounded-xl px-3 py-2 text-[13px]"
                   placeholder={`${week.week_index}주차 학습 계획을 입력하세요`}
                 />
               </div>

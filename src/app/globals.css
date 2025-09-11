@@ -241,7 +241,6 @@ select.flatpickr-monthDropdown-months option.flatpickr-monthDropdown-month[selec
 .focus-ring-primary:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgb(138 43 226 / 0.4);
-  border-color: var(--primary);
 }
 
 /* 텍스트 선택 비활성화 - input과 textarea 제외 */

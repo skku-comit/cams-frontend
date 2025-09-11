@@ -2,13 +2,13 @@ import Link from "next/link";
 
 export default function StudiesPage() {
   return (
-    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8 max-w-4xl mx-auto">
+    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-0 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
         <input
           placeholder="스터디 검색"
-          className="glass-input focus-ring-primary w-full rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500"
+          className="glass-input w-full rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500"
         />
-        <button className="glass-card hover:shadow-[0_0_0_2px_rgba(138,43,226,0.5)] active:scale-[0.98] rounded-xl px-4 py-3 text-gray-900">
+        <button className="glass-card hover:shadow-[0_0_0_2px_rgba(138,43,226,0.5)] active:scale-[0.98] min-w-30 rounded-xl px-4 py-3 text-gray-900">
           필터
         </button>
       </div>
