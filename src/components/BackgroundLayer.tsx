@@ -15,7 +15,7 @@ export default function BackgroundLayer() {
 
   return (
     <div className="fixed inset-0 pointer-events-none">
-      <div className="relative size-full lg:scale-100 max-w-105 z-0 mx-auto opacity-50">
+      <div className="relative size-full lg:scale-100 max-w-105 z-0 mx-auto opacity-95">
         <Image
           src="/bg2.png"
           alt="bg"

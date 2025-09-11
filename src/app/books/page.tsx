@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function BooksPage() {
   return (
-    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8 max-w-md mx-auto">
+    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-0 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
         <input
           placeholder="도서 검색"

@@ -26,9 +26,9 @@ export default function DashboardCardLink({
     >
       <div className="flex items-center justify-between">
         <span className="text-neutral-800 text-lg lg:text-xl font-medium">{title}</span>
-        <span className="text-neutral-800 lg:text-lg">→</span>
+        <span className="text-neutral-800 lg:text-lg font-semibold">→</span>
       </div>
-      {description ? <div className="mt-2 text-neutral-800 text-sm lg:text-base">{description}</div> : null}
+      {description ? <div className="mt-2 text-neutral-800 font-medium text-sm lg:text-base">{description}</div> : null}
     </Link>
   );
 }

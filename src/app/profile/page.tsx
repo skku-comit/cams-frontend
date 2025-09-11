@@ -5,8 +5,8 @@ export default function ProfilePage() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8">
-      <div className="grid md:grid-cols-2 gap-4">
+    <div className="min-h-dvh max-w-4xl mx-auto px-4 py-6 sm:px-6 md:px-0">
+      <div className="grid gap-4">
         {/* Profile Card */}
         <div className="glass-card rounded-2xl p-5">
           <div className="flex items-center gap-4">
