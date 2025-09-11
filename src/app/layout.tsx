@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "코밋 활동관리시스템",
   description: "코밋 활동관리시스템 CAMS",
-  icons: { icon: "/favicon.png" },
+  icons: { icon: "/logo-purple.png" },
 };
 
 export const viewport = "width=device-width, initial-scale=1";
@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased h-dvh max-w-dvh overflow-x-hidden bg-neutral-300  suppress-hydration-warnings">
+      <body className="antialiased h-dvh w-dvw overflow-x-hidden bg-neutral-300  suppress-hydration-warnings">
         <BodyBgSwitcher />
         {/* Hidden SVG filter for frosted/liquid glass effect */}
         <svg style={{ display: "none" }} aria-hidden>
@@ -36,7 +36,7 @@ export default function RootLayout({
         <header className="relative">
           <HeaderBar />
         </header>
-        <main className="relative">{children}</main>
+        <main className="relative w-[100vw]">{children}</main>
       </body>
     </html>
   );

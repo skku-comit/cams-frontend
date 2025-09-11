@@ -15,7 +15,7 @@ export default function MyStudyPage() {
   const list = items[tab];
 
   return (
-    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8 max-w-md mx-auto">
+    <div className="min-h-dvh px-4 py-6 sm:px-6 md:px-8 max-w-4xl mx-auto">
       {/* Tabs */}
       <div className="glass-card rounded-2xl p-1 mb-4 flex gap-1">
         {(
@@ -37,6 +37,13 @@ export default function MyStudyPage() {
         ))}
       </div>
 
+      {/* Quick action */}
+      <div className="mb-4">
+        <a href="/studies/create" className="glass-button rounded-xl px-4 py-2 inline-block">
+          스터디 개설하기
+        </a>
+      </div>
+
       {/* List */}
       {list.length === 0 ? (
         <div className="glass-card rounded-2xl p-8 text-center">
@@ -49,7 +56,7 @@ export default function MyStudyPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {list.map((name, idx) => (
-            <div key={idx} className="glass-card rounded-2xl p-4">
+            <div key={idx} className="glass-card rounded-2xl py-4 px-8">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-gray-900 font-semibold">{name}</div>

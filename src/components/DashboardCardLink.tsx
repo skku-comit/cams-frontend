@@ -6,20 +6,29 @@ interface DashboardCardLinkProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   heightClass?: string;
+  className?: string;
 }
 
-export default function DashboardCardLink({ href, title, description, heightClass }: DashboardCardLinkProps) {
+export default function DashboardCardLink({
+  href,
+  title,
+  description,
+  heightClass,
+  className,
+}: DashboardCardLinkProps) {
   const computedHeightClass = heightClass ?? "h-[20vh]";
   return (
     <Link
       href={href}
-      className={`glass-card active:scale-[0.98] transition transform duration-150 border ${computedHeightClass}`}
+      className={`glass-card active:scale-[0.98] transition transform duration-150 border lg:!p-6 ${computedHeightClass} ${
+        className ?? ""
+      }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-neutral-800 text-lg font-medium">{title}</span>
-        <span className="text-neutral-800">→</span>
+        <span className="text-neutral-800 text-lg lg:text-xl font-medium">{title}</span>
+        <span className="text-neutral-800 lg:text-lg">→</span>
       </div>
-      {description ? <div className="mt-2 text-neutral-800 text-sm">{description}</div> : null}
+      {description ? <div className="mt-2 text-neutral-800 text-sm lg:text-base">{description}</div> : null}
     </Link>
   );
 }

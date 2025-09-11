@@ -24,11 +24,11 @@ export default function HeaderBar() {
   const showLogout = isLoggedIn && pathname !== "/";
 
   return (
-    <div className="px-5 py-6 h-15 sm:px-6 md:px-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center ">
+    <div className="px-5 py-6 h-15 sm:px-6 md:px-8 w-full">
+      <div className="flex items-center justify-between max-w-5xl mx-auto">
+        <div className="flex items-center ml-2">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Image src="/comit.png" alt="CoMit Logo" width={30} height={12} className="object-contain" />
+            <Image src="/logo-purple.png" alt="CoMit Logo" width={30} height={12} className="object-contain" />
             <p className="text-base font-semibold text-neutral-800">활동관리시스템</p>
           </Link>
         </div>
