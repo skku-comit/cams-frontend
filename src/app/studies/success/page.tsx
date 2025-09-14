@@ -1,8 +1,17 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function StudyCreateSuccessPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-2xl px-4 py-10">로딩 중...</div>}>
+      <StudyCreateSuccessContent />
+    </Suspense>
+  );
+}
+
+function StudyCreateSuccessContent() {
   const params = useSearchParams();
   const router = useRouter();
   const name = params.get("name") ?? "스터디";

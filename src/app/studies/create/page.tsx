@@ -4,17 +4,23 @@ import { useState, FormEvent, useRef, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createStudyAction, type CreateStudyActionState } from "@/actions/createStudy";
 
-const DAYS_OF_WEEK = [
-  { value: "mon", label: "월요일", short: "월" },
-  { value: "tue", label: "화요일", short: "화" },
-  { value: "wed", label: "수요일", short: "수" },
-  { value: "thurs", label: "목요일", short: "목" },
-  { value: "fri", label: "금요일", short: "금" },
-  { value: "sat", label: "토요일", short: "토" },
-  { value: "sun", label: "일요일", short: "일" },
-  { value: "undecided", label: "미정", short: "미정" },
+const LEVEL_OPTIONS = [
+  { value: "beginner", label: "초급" },
+  { value: "intermediate", label: "중급" },
+  { value: "advanced", label: "고급" },
 ] as const;
+type Level = (typeof LEVEL_OPTIONS)[number]["value"];
 
+const DAYS_OF_WEEK = [
+  { value: "monday", label: "월" },
+  { value: "tuesday", label: "화" },
+  { value: "wednesday", label: "수" },
+  { value: "thursday", label: "목" },
+  { value: "friday", label: "금" },
+  { value: "saturday", label: "토" },
+  { value: "sunday", label: "일" },
+  { value: "undecided", label: "미정" },
+] as const;
 const TECH_STACKS = [
   "JavaScript",
   "TypeScript",
@@ -37,59 +43,28 @@ const TECH_STACKS = [
 
 const KNOWN_STACKS: ReadonlyArray<string> = TECH_STACKS;
 
-type ActivityType = "study" | "project" | "session";
-type ActivityLevel = "easy" | "intermediate" | "hard";
-
 interface WeeklyPlan {
   week_index: number;
   learning_plan: string;
 }
 
-interface ActivityForm {
-  activity_name: string;
-  activity_type: ActivityType;
-  activity_description: string;
-  level: ActivityLevel | "";
-  max_member: number;
-  min_member: number;
-  duration_week: number | null;
-  day_of_week: string;
-  activity_start_time: string;
-  activity_end_time: string;
-  activity_stack: string[];
-  custom_stack: string;
-  curriculum: WeeklyPlan[];
-}
-
-export default function CreateCoursePage() {
+export default function CreateStudyPage() {
   const router = useRouter();
   const timeErrorRef = useRef<HTMLParagraphElement>(null);
   const initialActionState: CreateStudyActionState = { success: false };
   const [actionState, formAction, isPending] = useActionState(createStudyAction, initialActionState);
-  const [formData, setFormData] = useState<ActivityForm>({
-    activity_name: "",
-    activity_type: "study",
-    activity_description: "",
-    level: "",
-    max_member: 8,
-    min_member: 2,
-    duration_week: null,
-    day_of_week: "",
-    activity_start_time: "",
-    activity_end_time: "",
-    activity_stack: [],
-    custom_stack: "",
-    curriculum: [],
-  });
+  // 사용자 정의 스택만 최소 상태로 관리
+  const [customStackInput, setCustomStackInput] = useState("");
+  const [customStacks, setCustomStacks] = useState<string[]>([]);
 
   // 성공 시 축하 페이지로 이동 (낙관적 네비게이션)
   useEffect(() => {
     if (!actionState?.success) return;
-    const level = formData.level || "";
-    const name = formData.activity_name || "";
+    const name = actionState?.payload?.title || "";
+    const level = (actionState?.payload?.level || "").toLowerCase();
     const params = new URLSearchParams({ name, level });
     router.push(`/studies/success?${params.toString()}`);
-  }, [actionState?.success, formData.level, formData.activity_name, router]);
+  }, [actionState?.success, actionState?.payload?.title, actionState?.payload?.level, router]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     // 클라이언트 측 시간 검증 (state 미사용)
@@ -115,46 +90,12 @@ export default function CreateCoursePage() {
     }
   };
 
-  const handleStackChange = (stack: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      activity_stack: prev.activity_stack.includes(stack)
-        ? prev.activity_stack.filter((s) => s !== stack)
-        : [...prev.activity_stack, stack],
-    }));
-  };
-
   const addCustomStack = () => {
-    if (formData.custom_stack && !formData.activity_stack.includes(formData.custom_stack)) {
-      setFormData((prev) => ({
-        ...prev,
-        activity_stack: [...prev.activity_stack, prev.custom_stack],
-        custom_stack: "",
-      }));
-    }
-  };
-
-  const handleDurationChange = (weeks: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      duration_week: weeks,
-      curriculum:
-        weeks > 0
-          ? Array(weeks)
-              .fill(null)
-              .map((_, i) => ({
-                week_index: i + 1,
-                learning_plan: prev.curriculum[i]?.learning_plan || "",
-              }))
-          : [],
-    }));
-  };
-
-  const handleCurriculumChange = (week: number, plan: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      curriculum: prev.curriculum.map((item) => (item.week_index === week ? { ...item, learning_plan: plan } : item)),
-    }));
+    const value = customStackInput.trim();
+    if (!value) return;
+    if (KNOWN_STACKS.includes(value) || customStacks.includes(value)) return;
+    setCustomStacks((prev) => [...prev, value]);
+    setCustomStackInput("");
   };
 
   return (
@@ -177,38 +118,12 @@ export default function CreateCoursePage() {
         encType="multipart/form-data"
         className="border border-black/10 shadow-2xl rounded-2xl p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8"
       >
-        {/* 숨김 필드: 서버로 전송해야 하는 상태 값들 */}
-        <input type="hidden" name="activity_type" value={formData.activity_type} />
-        <input type="hidden" name="min_member" value={formData.min_member} />
+        {/* 사용자 정의 스택 hidden inputs */}
         <div className="sr-only">
-          {formData.activity_stack.map((s) => (
+          {customStacks.map((s) => (
             <input key={s} type="hidden" name="activity_stack" value={s} />
           ))}
         </div>
-
-        {/* 서버 메시지는 성공 페이지에서 노출 */}
-        {/* 활동 유형 선택 */}
-        {/* <div className="space-y-2">
-          <label className="block text-[14px] font-medium md:text-[15px]">활동 유형</label>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {["study", "project", "session"].map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, activity_type: type as ActivityType }))}
-                className={`glass-card active:scale-[0.98] transition rounded-xl border p-3 text-[13px] md:p-4 md:text-[14px] ${
-                  formData.activity_type === type
-                    ? "bg-[rgba(138,43,226,0.35)] text-gray-900"
-                    : "hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)]"
-                }`}
-              >
-                {type === "study" && "📚 스터디"}
-                {type === "project" && "💻 프로젝트"}
-                {type === "session" && "🎯 세션"}
-              </button>
-            ))}
-          </div>
-        </div> */}
 
         {/* 기본 정보 */}
         <div className="space-y-6">
@@ -220,8 +135,6 @@ export default function CreateCoursePage() {
               name="activity_name"
               required
               aria-invalid={Boolean(actionState?.errors?.activity_name) || undefined}
-              value={formData.activity_name}
-              onChange={(e) => setFormData((prev) => ({ ...prev, activity_name: e.target.value }))}
               className="glass-input w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px] placeholder-black/60"
               placeholder="활동명을 입력하세요 (최대 15자)"
             />
@@ -244,42 +157,69 @@ export default function CreateCoursePage() {
             )}
           </div>
 
-          <div aria-required="true">
-            <label className="mb-1.5 block text-[14px] font-medium md:text-[15px]">난이도</label>
+          <div role="radiogroup" aria-labelledby="level-label" aria-required="true">
+            <label id="level-label" className="mb-1.5 block text-[14px] font-medium md:text-[15px]">
+              난이도
+            </label>
             <div className="grid grid-cols-3 gap-3">
-              {["beginner", "intermediate", "advanced"].map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, level: level as ActivityLevel }))}
-                  className={`opacity-100 active:scale-[0.98] transition rounded-xl border px-3 py-2 text-[13px] md:text-[14px] ${
-                    formData.level === level
-                      ? "bg-[rgba(138,43,226,0.35)] text-gray-900"
-                      : "hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)]"
-                  }`}
-                >
-                  {level === "easy" && "초급"}
-                  {level === "intermediate" && "중급"}
-                  {level === "hard" && "고급"}
-                </button>
-              ))}
-              {/* 시맨틱 라디오(시각적으로 숨김) */}
-              <div className="sr-only">
-                {["easy", "intermediate", "hard"].map((level, idx) => (
+              {LEVEL_OPTIONS.map(({ value, label }, idx) => (
+                <div key={value}>
                   <input
-                    key={level}
                     type="radio"
+                    id={`level-${value}`}
                     name="level"
-                    value={level}
-                    checked={formData.level === (level as ActivityLevel)}
-                    onChange={() => setFormData((prev) => ({ ...prev, level: level as ActivityLevel }))}
+                    value={value}
+                    className="peer sr-only"
                     required={idx === 0}
-                    readOnly
                   />
-                ))}
-              </div>
+                  <label
+                    htmlFor={`level-${value}`}
+                    className="block cursor-pointer rounded-xl border px-3 py-2 text-center text-[13px] transition md:text-[14px] active:scale-[0.98] bg-white text-gray-700 hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)] peer-checked:bg-blue-100 peer-checked:text-blue-800 peer-checked:border-blue-300 peer-checked:font-semibold"
+                  >
+                    {label}
+                  </label>
+                </div>
+              ))}
             </div>
-            {actionState?.errors?.level && <p className="mt-1 text-[12px] text-red-600">{actionState.errors.level}</p>}
+            {actionState?.errors?.level && (
+              <p id="level-error" className="mt-1 text-[12px] text-red-600">
+                {actionState.errors.level}
+              </p>
+            )}
+          </div>
+
+          {/* 캠퍼스 */}
+          <div role="radiogroup" aria-labelledby="campus-label" aria-required="true">
+            <label id="campus-label" className="mb-1.5 block text-[14px] font-medium md:text-[15px]">
+              캠퍼스
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { value: "SEOUL", label: "서울" },
+                { value: "SUWON", label: "수원" },
+                { value: "NONE", label: "무관" },
+              ].map(({ value, label }, idx) => (
+                <div key={value}>
+                  <input
+                    type="radio"
+                    id={`campus-${value}`}
+                    name="campus"
+                    value={value}
+                    className="peer sr-only"
+                    required={idx === 0}
+                  />
+                  <label
+                    htmlFor={`campus-${value}`}
+                    className="block cursor-pointer rounded-xl border px-3 py-2 text-center text-[13px] transition md:text-[14px] active:scale-[0.98] bg-white text-gray-700 hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)] peer-checked:bg-blue-100 peer-checked:text-blue-800 peer-checked:border-blue-300 peer-checked:font-semibold"
+                  >
+                    {label}
+                  </label>
+                </div>
+              ))}
+            </div>
+            {actionState?.errors?.campus && (
+              <p className="mt-1 text-[12px] text-red-600">{actionState.errors.campus}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -292,8 +232,6 @@ export default function CreateCoursePage() {
                 name="max_member"
                 required
                 aria-invalid={Boolean(actionState?.errors?.max_member) || undefined}
-                value={formData.max_member}
-                onChange={(e) => setFormData((prev) => ({ ...prev, max_member: Number(e.target.value) }))}
                 className="glass-input  w-28 md:w-32 rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
                 placeholder="2~20명"
               />
@@ -304,35 +242,24 @@ export default function CreateCoursePage() {
             <div>
               <label className="mb-1.5 block text-[14px] font-medium md:text-[15px]">진행 기간</label>
               <div className="grid grid-cols-4 gap-2">
-                {[4, 8, 12, 16].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    onClick={() => handleDurationChange(w)}
-                    className={`active:scale-[0.98] transition rounded-xl border px-3 py-2 text-[13px] md:text-[14px] ${
-                      formData.duration_week === w
-                        ? "bg-[rgba(138,43,226,0.35)] text-gray-900"
-                        : "hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)]"
-                    }`}
-                  >
-                    {w}주
-                  </button>
-                ))}
-                {/* 시맨틱 라디오(시각적으로 숨김) */}
-                <div className="sr-only">
-                  {[4, 8, 12, 16].map((w, idx) => (
+                {[4, 8, 12, 16].map((w, idx) => (
+                  <div key={w}>
                     <input
-                      key={w}
+                      id={`duration-${w}`}
                       type="radio"
                       name="duration_week"
                       value={String(w)}
-                      checked={formData.duration_week === w}
-                      onChange={() => handleDurationChange(w)}
+                      className="peer sr-only"
                       required={idx === 0}
-                      readOnly
                     />
-                  ))}
-                </div>
+                    <label
+                      htmlFor={`duration-${w}`}
+                      className="active:scale-[0.98] transition rounded-xl border px-3 py-2 text-[13px] md:text-[14px] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)] peer-checked:bg-[rgba(138,43,226,0.35)] peer-checked:text-gray-900"
+                    >
+                      {w}주
+                    </label>
+                  </div>
+                ))}
               </div>
               {actionState?.errors?.duration_week && (
                 <p className="mt-1 text-[12px] text-red-600">{actionState.errors.duration_week}</p>
@@ -343,35 +270,24 @@ export default function CreateCoursePage() {
           <div aria-required="true">
             <label className="mb-1.5 block text-[14px] font-medium md:text-[15px]">활동 요일</label>
             <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-              {DAYS_OF_WEEK.map((day) => (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, day_of_week: day.value }))}
-                  className={`shrink-0 active:scale-[0.98] transition rounded-xl border px-2 py-1 text-[12px] ${
-                    formData.day_of_week === day.value
-                      ? "bg-[rgba(138,43,226,0.35)] text-gray-900"
-                      : "hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)]"
-                  }`}
-                >
-                  {day.short}
-                </button>
-              ))}
-              {/* 시맨틱 라디오(시각적으로 숨김) */}
-              <div className="sr-only">
-                {DAYS_OF_WEEK.map((day, idx) => (
+              {DAYS_OF_WEEK.map((day, idx) => (
+                <div key={day.value} className="shrink-0">
                   <input
-                    key={day.value}
+                    className="peer sr-only"
+                    id={`dow-${day.value}`}
                     type="radio"
                     name="day_of_week"
                     value={day.value}
-                    checked={formData.day_of_week === day.value}
-                    onChange={() => setFormData((prev) => ({ ...prev, day_of_week: day.value }))}
                     required={idx === 0}
-                    readOnly
                   />
-                ))}
-              </div>
+                  <label
+                    htmlFor={`dow-${day.value}`}
+                    className="active:scale-[0.98] transition rounded-xl border px-2 py-1 text-[12px] hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)] peer-checked:bg-[rgba(138,43,226,0.35)] peer-checked:text-gray-900"
+                  >
+                    {day.label}
+                  </label>
+                </div>
+              ))}
             </div>
             {actionState?.errors?.day_of_week && (
               <p className="mt-1 text-[12px] text-red-600">{actionState.errors.day_of_week}</p>
@@ -386,8 +302,6 @@ export default function CreateCoursePage() {
                 name="activity_start_time"
                 required
                 aria-invalid={Boolean(actionState?.errors?.activity_start_time) || undefined}
-                value={formData.activity_start_time}
-                onChange={(e) => setFormData((prev) => ({ ...prev, activity_start_time: e.target.value }))}
                 className="glass-input w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
               />
               {actionState?.errors?.activity_start_time && (
@@ -401,8 +315,6 @@ export default function CreateCoursePage() {
                 name="activity_end_time"
                 required
                 aria-invalid={Boolean(actionState?.errors?.activity_end_time) || undefined}
-                value={formData.activity_end_time}
-                onChange={(e) => setFormData((prev) => ({ ...prev, activity_end_time: e.target.value }))}
                 className="glass-input  w-full rounded-xl px-4 py-3 text-[13px] md:text-[14px]"
               />
               {actionState?.errors?.activity_end_time && (
@@ -417,48 +329,51 @@ export default function CreateCoursePage() {
         <div className="space-y-4">
           <label className="block text-[14px] font-medium md:text-[15px]">사용 기술</label>
           <div className="flex flex-wrap gap-2">
-            {TECH_STACKS.map((stack) => (
-              <button
-                key={stack}
-                type="button"
-                onClick={() => handleStackChange(stack)}
-                className={`active:scale-[0.98] transition rounded-xl px-3 py-1.5 text-[13px] border ${
-                  formData.activity_stack.includes(stack)
-                    ? "bg-[rgba(138,43,226,0.3)] text-gray-900"
-                    : "hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)]"
-                }`}
-              >
-                {stack}
-              </button>
-            ))}
-            {formData.activity_stack
-              .filter((stack) => !KNOWN_STACKS.includes(stack))
-              .map((stack) => (
-                <button
-                  key={stack}
-                  type="button"
-                  onClick={() => handleStackChange(stack)}
-                  className="active:scale-[0.98] transition rounded-xl px-3 py-1.5 text-[13px] border bg-[rgba(138,43,226,0.3)] text-gray-900"
-                >
-                  {stack}
-                </button>
-              ))}
+            {TECH_STACKS.map((stack) => {
+              const id = `stack-${stack.toLowerCase().replace(/[^a-z0-9_-]/g, "-")}`;
+              return (
+                <div key={stack}>
+                  <input id={id} type="checkbox" name="activity_stack" value={stack} className="peer sr-only" />
+                  <label
+                    htmlFor={id}
+                    className="active:scale-[0.98] transition rounded-xl px-3 py-1.5 text-[13px] border hover:shadow-[0_0_0_2px_rgba(0,0,0,0.12)] peer-checked:bg-[rgba(138,43,226,0.3)] peer-checked:text-gray-900"
+                  >
+                    {stack}
+                  </label>
+                </div>
+              );
+            })}
+            {customStacks.map((stack) => {
+              const id = `stack-${stack.toLowerCase().replace(/[^a-z0-9_-]/g, "-")}`;
+              return (
+                <div key={stack}>
+                  <input
+                    id={id}
+                    type="checkbox"
+                    name="activity_stack"
+                    value={stack}
+                    className="peer sr-only"
+                    defaultChecked
+                  />
+                  <label
+                    htmlFor={id}
+                    className="active:scale-[0.98] transition rounded-xl px-3 py-1.5 text-[13px] border bg-[rgba(138,43,226,0.3)] text-gray-900"
+                  >
+                    {stack}
+                  </label>
+                </div>
+              );
+            })}
           </div>
           <div className="flex gap-2">
             <input
               type="text"
-              value={formData.custom_stack}
-              onChange={(e) => setFormData((prev) => ({ ...prev, custom_stack: e.target.value }))}
+              value={customStackInput}
+              onChange={(e) => setCustomStackInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  if (formData.custom_stack && !formData.activity_stack.includes(formData.custom_stack)) {
-                    setFormData((prev) => ({
-                      ...prev,
-                      activity_stack: [...prev.activity_stack, prev.custom_stack],
-                      custom_stack: "",
-                    }));
-                  }
+                  addCustomStack();
                 }
               }}
               className="glass-input  flex-1 rounded-xl px-4 py-2 text-[13px]"
@@ -467,33 +382,15 @@ export default function CreateCoursePage() {
             <button
               type="button"
               onClick={addCustomStack}
-              disabled={!formData.custom_stack}
+              disabled={!customStackInput.trim()}
               className={`glass-button rounded-xl px-4 py-2 text-[13px] transition-colors ${
-                formData.custom_stack ? "" : "opacity-60 cursor-not-allowed"
+                customStackInput.trim() ? "" : "opacity-60 cursor-not-allowed"
               }`}
             >
               추가
             </button>
           </div>
         </div>
-
-        {/* 커리큘럼 섹션 추가 */}
-        {/* <div className="space-y-4">
-          <label className="block text-[14px] font-medium md:text-[15px]">주차별 커리큘럼</label>
-          <div className="space-y-3">
-            {formData.curriculum.map((week) => (
-              <div key={week.week_index} className="space-y-2">
-                <label className="block text-[13px] text-gray-600">{week.week_index}주차</label>
-                <textarea
-                  value={week.learning_plan}
-                  onChange={(e) => handleCurriculumChange(week.week_index, e.target.value)}
-                  className="glass-input min-h-[30px] w-full rounded-xl px-3 py-2 text-[13px]"
-                  placeholder={`${week.week_index}주차 학습 계획을 입력하세요`}
-                />
-              </div>
-            ))}
-          </div>
-        </div> */}
 
         {/* 상세 정보 */}
         <div className="space-y-4">
@@ -503,8 +400,6 @@ export default function CreateCoursePage() {
               name="activity_description"
               required
               aria-invalid={Boolean(actionState?.errors?.activity_description) || undefined}
-              value={formData.activity_description}
-              onChange={(e) => setFormData((prev) => ({ ...prev, activity_description: e.target.value }))}
               className="h-24 w-full rounded-lg border px-3 py-2 text-[13px] md:px-4 md:py-2.5 md:text-[14px]"
               placeholder="활동 목표와 진행 방식을 소개해주세요"
             />

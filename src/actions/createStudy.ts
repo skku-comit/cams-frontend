@@ -8,57 +8,60 @@ export type CreateStudyActionState = {
   payload?: CreateStudyPayload;
 };
 
+type StudyLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+type DayOfWeek = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+type Season = "SPRING" | "SUMMER" | "FALL" | "WINTER" | "ETC";
+
+//Umm.. little too much code...? 타입 단언 하기 싫어서 런타임에서의 데이터 유효성 검사(타입가드)까지 해야 돼버림. 근데 zod도 런타임이니까 중복이네...
+// const STUDY_LEVELS = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
+const CAMPUSES = ["SEOUL", "SUWON", "NONE"] as const;
+// type StudyLevel = (typeof STUDY_LEVELS)[number];
+type Campus = (typeof CAMPUSES)[number];
+// const isStudyLevel = (value: unknown): value is StudyLevel => {
+//   return STUDY_LEVELS.includes(value as StudyLevel);
+// };
+const isCampus = (value: unknown): value is Campus => {
+  return CAMPUSES.includes(value as Campus);
+};
+// const getValidatedLevel = (levelInput: string): StudyLevel => {
+//   const upperLevel = levelInput.toUpperCase();
+//   if (isStudyLevel(upperLevel)) {
+//     return upperLevel; // 타입 가드를 통과했으므로 안전하게 StudyLevel 타입으로 반환
+//   }
+//   throw new Error(`Invalid study level provided: ${levelInput}`);
+// };
+const getValidatedCampus = (campusInput: string): Campus => {
+  const upperCampus = campusInput.toUpperCase();
+  if (isCampus(upperCampus)) {
+    return upperCampus;
+  }
+  throw new Error(`Invalid campus provided: ${campusInput}`);
+};
+//Ummm
+
 export type CreateStudyPayload = {
   title: string;
   description: string;
-  leaderId: string;
-  level: StudyLevelAPI;
-  campus: CampusAPI;
+  level: StudyLevel;
+  campus: Campus;
+  max_member: number;
   imageUrl?: string;
   tags: string[];
-  schedule?: Array<{
-    day: ScheduleDay;
+  schedule?: {
+    day: DayOfWeek;
     startTime: string; // HH:mm
     endTime: string; // HH:mm
-  }>;
+  };
   semester: {
     year: number;
-    season: SemesterSeason;
+    season: Season;
   };
 };
-
-export type StudyLevelAPI = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-export type CampusAPI = "SEOUL" | "SUWON" | "NONE";
-export type ScheduleDay = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
-export type SemesterSeason = "SPRING" | "SUMMER" | "FALL" | "WINTER" | "ETC";
 
 const toUpperEnum = (v: unknown) =>
   String(v ?? "")
     .replace(/-/g, "_")
     .toUpperCase();
-
-const toFullDay = (v: unknown): ScheduleDay | undefined => {
-  const s = toUpperEnum(v);
-  switch (s) {
-    case "MON":
-      return "MONDAY";
-    case "TUE":
-      return "TUESDAY";
-    case "WED":
-      return "WEDNESDAY";
-    case "THU":
-    case "THURS":
-      return "THURSDAY";
-    case "FRI":
-      return "FRIDAY";
-    case "SAT":
-      return "SATURDAY";
-    case "SUN":
-      return "SUNDAY";
-    default:
-      return undefined;
-  }
-};
 
 const timeStringToMinutes = (time: string): number | null => {
   if (!time) return null;
@@ -71,18 +74,16 @@ const timeStringToMinutes = (time: string): number | null => {
 
 const createStudySchema = z
   .object({
-    activity_name: z.string().min(1, "스터디 이름을 입력하세요.").max(15, "스터디 이름은 15자 이하여야 합니다."),
-    activity_type: z.enum(["study", "project", "session"]).default("study"),
-    activity_description: z.string().min(1, "활동 소개를 입력하세요.").max(2000, "활동 소개가 너무 깁니다."),
-    level: z.enum(["easy", "intermediate", "hard"]),
+    title: z.string().min(1, "스터디 이름을 입력하세요.").max(15, "스터디 이름은 15자 이하여야 합니다."),
+    description: z.string().min(1, "활동 소개를 입력하세요.").max(2000, "활동 소개가 너무 깁니다."),
+    level: z.enum(["beginner", "intermediate", "advanced"]),
     campus: z.enum(["SEOUL", "SUWON", "NONE"]),
     max_member: z.coerce.number().int().min(2, "최소 2명").max(20, "최대 20명"),
-    min_member: z.coerce.number().int().min(1).max(20).optional(),
     duration_week: z.coerce
       .number()
       .int()
       .refine((v) => [4, 8, 12, 16].includes(v), { message: "진행 기간을 선택하세요." }),
-    day_of_week: z.enum(["mon", "tue", "wed", "thurs", "fri", "sat", "sun", "undecided"]),
+    day_of_week: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "undecided"]),
     activity_start_time: z.string().min(1, "시작 시간을 선택하세요."),
     activity_end_time: z.string().min(1, "종료 시간을 선택하세요."),
     activity_stack: z.array(z.string()).default([]),
@@ -108,19 +109,20 @@ export async function createStudyAction(
   // activity_stack: FormData에서는 같은 name으로 여러 값 전달
 
   const formPayload = {
-    activity_name: String(formData.get("activity_name") || ""),
-    activity_type: String(formData.get("activity_type") || "study"),
-    activity_description: String(formData.get("activity_description") || ""),
+    title: String(formData.get("activity_name") || ""),
+    description: String(formData.get("activity_description") || ""),
     level: String(formData.get("level") || ""),
     campus: String(formData.get("campus") || ""),
     max_member: formData.get("max_member"),
-    min_member: formData.get("min_member") ?? 2,
     duration_week: formData.get("duration_week"),
     day_of_week: String(formData.get("day_of_week") || ""),
     activity_start_time: String(formData.get("activity_start_time") || ""),
     activity_end_time: String(formData.get("activity_end_time") || ""),
     activity_stack: formData.getAll("activity_stack").map(String),
-    activity_image: formData.get("activity_image") instanceof File,
+    activity_image: ((): File | null => {
+      const value = formData.get("activity_image");
+      return value instanceof File && value.name ? value : null;
+    })(),
   };
 
   const parsed = createStudySchema.safeParse(formPayload);
@@ -145,36 +147,28 @@ export async function createStudyAction(
   //년도 및 학기 설정, 디테일 추가 필요함.
   const now = new Date();
   const [month, year] = [now.getMonth() + 1, now.getFullYear()]; // 1-12, 년도
-  let season: SemesterSeason = "ETC";
+  let season = "ETC";
   if (month >= 3 && month <= 5) season = "SPRING";
   else if (month >= 6 && month <= 8) season = "SUMMER";
   else if (month >= 9 && month <= 11) season = "FALL";
   else season = "WINTER";
 
-  const fullDay = toFullDay(data.day_of_week);
-  const schedule: CreateStudyPayload["schedule"] =
-    fullDay && data.activity_start_time && data.activity_end_time
-      ? [
-          {
-            day: fullDay,
-            startTime: data.activity_start_time,
-            endTime: data.activity_end_time,
-          },
-        ]
-      : [];
-
   const apiPayload: CreateStudyPayload = {
-    title: data.activity_name,
-    description: data.activity_description,
-    leaderId: process.env.MOCK_LEADER_ID || "", // 세션에서 채워야 함 -> 아님. 헤더에 로그인정보 포함되어서 바디에는 필요없음
-    level: data.level as StudyLevelAPI,
-    campus: data.campus as CampusAPI,
+    title: data.title,
+    description: data.description,
+    max_member: data.max_member,
+    level: data.level as StudyLevel, //요놈은 타입 단언
+    campus: getValidatedCampus(data.campus), //요놈은 타입 가드
     imageUrl: process.env.MOCK_IMAGE_URL || "", // 업로드 처리 후 URL 할당 필요
     tags: data.activity_stack,
-    schedule,
+    schedule: {
+      day: toUpperEnum(data.day_of_week) as DayOfWeek,
+      startTime: data.activity_start_time,
+      endTime: data.activity_end_time,
+    },
     semester: {
       year: year,
-      season: season,
+      season: season as Season,
     },
   };
 
