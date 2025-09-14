@@ -17,6 +17,6 @@ function useIsLoggedIn(): boolean {
 
 export default function AuthMyStudyLabel() {
   const isLoggedIn = useIsLoggedIn();
-  const label = useMemo(() => (isLoggedIn ? "마이 스터디" : "로그인 / 마이 스터디"), [isLoggedIn]);
+  const label = useMemo(() => (isLoggedIn ? "내 활동" : "로그인"), [isLoggedIn]);
   return <>{label}</>;
 }

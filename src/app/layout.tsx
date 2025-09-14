@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "코밋 활동관리시스템",
   description: "코밋 활동관리시스템 CAMS",
-  icons: { icon: "/logo-purple.png" },
+  icons: { icon: "/comit.png" },
 };
 
 export const viewport = "width=device-width, initial-scale=1";

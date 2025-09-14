@@ -35,7 +35,7 @@ export default function HeaderBar() {
       >
         <div className="flex items-center ml-2">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Image src="/logo-purple.png" alt="CoMit Logo" width={30} height={12} className="object-contain" />
+            <Image src="/comit.png" alt="CoMit Logo" width={30} height={12} className="object-contain" />
             <p className="text-base font-semibold text-neutral-800">활동관리시스템</p>
           </Link>
         </div>
