@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useActionState } from "react";
 import { submitLogin } from "@/actions/login";
+import Link from "next/link";
 
 type ActionState = {
   success?: boolean;
@@ -82,10 +83,17 @@ export default function LoginPage() {
             <p className={`text-sm ${state?.success ? "text-green-400" : "text-red-400"}`}>{state.message}</p>
           )}
 
+          <div className="text-sm text-neutral-700 text-center">
+            아이디가 없으신가요?{" "}
+            <Link href="/signup" className="text-purple-700 hover:text-purple-800 underline underline-offset-4">
+              회원가입하기
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={isPending}
-            className="w-full rounded-xl py-3 font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-purple-600 text-white hover:bg-purple-700"
+            className="w-full rounded-xl py-3 font-semibold active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 glass-button focus-ring-primary"
           >
             {isPending ? (
               <>

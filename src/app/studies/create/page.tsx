@@ -82,6 +82,20 @@ export default function CreateStudyPage() {
     }
     const fd = new FormData(e.currentTarget);
     const count = Number(fd.get("schedule_count") || 0);
+    // '미정' 중복 선택 방지 (두 개 이상이면 막음)
+    let undecidedCount = 0;
+    for (let i = 0; i < count; i++) {
+      const dayValue = String(fd.get(`schedule_${i}_day`) || "");
+      if (dayValue === "undecided") undecidedCount++;
+    }
+    if (undecidedCount > 1) {
+      e.preventDefault();
+      if (timeErrorRef.current) {
+        timeErrorRef.current.textContent = "날짜가 미정이시라면 한번만 클릭해주세요.";
+        timeErrorRef.current.classList.remove("hidden");
+      }
+      return;
+    }
     const toMinutes = (t: string) => {
       const [h, m] = t.split(":");
       return Number(h) * 60 + Number(m);

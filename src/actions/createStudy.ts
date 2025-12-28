@@ -190,20 +190,18 @@ export async function createStudyAction(
     title: data.title,
     description: data.description,
     max_member: data.max_member,
-    level: data.level as StudyLevel, //요놈은 타입 단언
+    level: toUpperEnum(data.level) as StudyLevel,
     campus: getValidatedCampus(data.campus), //요놈은 타입 가드
-    imageUrl: "not yet implemented", // 업로드 처리 후 URL 할당 필요
     tags: data.activity_stack,
-    ...(schedules ? { schedules } : {}),
     semester: {
       year: year,
       season: season as Season,
     },
+    ...(schedules ? { schedules } : {}),
   };
 
-  // 시뮬레이션: 외부 API로 전송 (실제 엔드포인트 준비 전)
-  // 기본은 httpbin으로 전송, 환경변수로 재정의 가능
-  const endpoint = process.env.NEXT_PUBLIC_SIMULATED_ENDPOINT || "https://httpbin.org/post";
+  const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "";
+  const endpoint = `${RAW_API_BASE_URL.replace(/\/+$/, "")}/study`;
   let sent = false;
   try {
     console.log(apiPayload);
